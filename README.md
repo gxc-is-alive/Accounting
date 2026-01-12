@@ -23,7 +23,51 @@
 
 ## 快速开始
 
-### 1. 数据库配置
+### 方式一：Docker 部署（推荐）
+
+使用 Docker Compose 一键启动所有服务，数据自动持久化。
+
+```bash
+# 1. 复制环境变量配置
+cp .env.docker .env
+
+# 2. 编辑 .env 文件，修改密码和密钥
+# 重要：请修改 DB_ROOT_PASSWORD、DB_PASSWORD、JWT_SECRET
+
+# 3. 启动所有服务
+docker-compose up -d
+
+# 4. 查看服务状态
+docker-compose ps
+
+# 5. 查看日志
+docker-compose logs -f
+```
+
+启动后访问：
+
+- 前端: http://localhost
+- 后端 API: http://localhost:3000
+
+生产环境部署（带资源限制）：
+
+```bash
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+数据卷备份：
+
+```bash
+# 备份 MySQL 数据
+docker run --rm -v family-accounting-mysql-data:/data -v $(pwd):/backup alpine tar czf /backup/mysql-backup.tar.gz /data
+
+# 恢复 MySQL 数据
+docker run --rm -v family-accounting-mysql-data:/data -v $(pwd):/backup alpine tar xzf /backup/mysql-backup.tar.gz -C /
+```
+
+### 方式二：手动部署
+
+#### 1. 数据库配置
 
 ```sql
 -- 创建数据库
@@ -32,7 +76,7 @@ CREATE DATABASE family_accounting CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_
 
 然后执行 `backend/src/scripts/initDb.sql` 初始化表结构和预设数据。
 
-### 2. 后端配置
+#### 2. 后端配置
 
 ```bash
 cd backend
@@ -46,7 +90,7 @@ cp .env.example .env
 # 编辑 .env 文件，配置数据库和 API Key
 ```
 
-### 3. 前端配置
+#### 3. 前端配置
 
 ```bash
 cd frontend
@@ -55,7 +99,7 @@ cd frontend
 npm install
 ```
 
-### 4. 启动服务
+#### 4. 启动服务
 
 ```bash
 # 启动后端（在 backend 目录）
@@ -65,7 +109,7 @@ npm run dev
 npm run dev
 ```
 
-### 5. 访问应用
+#### 5. 访问应用
 
 - 前端: http://localhost:5173
 - 后端 API: http://localhost:3000
@@ -96,6 +140,12 @@ npm run dev
 - `GET /api/statistics/monthly` - 月度统计
 - `POST /api/ai/parse` - AI 解析记账文本
 - `POST /api/ai/analyze` - AI 消费分析
+
+### 数据导出/导入 API
+
+- `GET /api/export/json` - 导出所有数据为 JSON（支持 `?includeFamily=true` 包含家庭数据）
+- `GET /api/export/csv` - 导出交易记录为 CSV（支持 `?startDate=&endDate=` 日期过滤）
+- `POST /api/export/import` - 导入 JSON 数据（Body: `{ data: {...}, mode: "skip"|"overwrite" }`）
 
 ## 许可证
 

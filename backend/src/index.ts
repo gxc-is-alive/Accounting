@@ -13,6 +13,7 @@ import statisticsRoutes from "./routes/statistics.routes";
 import budgetRoutes from "./routes/budget.routes";
 import aiRoutes from "./routes/ai.routes";
 import repaymentRoutes from "./routes/repayment.routes";
+import exportRoutes from "./routes/export.routes";
 
 // 创建 Express 应用
 const app: Application = express();
@@ -38,6 +39,7 @@ app.use("/api/statistics", statisticsRoutes);
 app.use("/api/budgets", budgetRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/repayments", repaymentRoutes);
+app.use("/api/export", exportRoutes);
 // app.use('/api/categories', categoryRoutes);
 // app.use('/api/bill-types', billTypeRoutes);
 // app.use('/api/transactions', transactionRoutes);
