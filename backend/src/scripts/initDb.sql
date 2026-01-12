@@ -1,3 +1,7 @@
+-- 设置字符集
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
+
 -- 创建数据库
 CREATE DATABASE IF NOT EXISTS family_accounting
   CHARACTER SET utf8mb4

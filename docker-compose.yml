@@ -7,11 +7,13 @@ services:
   mysql:
     image: docker.m.daocloud.io/mysql:8.0
     container_name: family-accounting-mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --init-connect='SET NAMES utf8mb4'
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root123456}
       MYSQL_DATABASE: ${DB_NAME:-family_accounting}
       MYSQL_USER: ${DB_USER:-accounting}
       MYSQL_PASSWORD: ${DB_PASSWORD:-accounting123}
+      LANG: C.UTF-8
     volumes:
       # 数据持久化 - 使用命名卷确保重启后数据不丢失
       - mysql_data:/var/lib/mysql
