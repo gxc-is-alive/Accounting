@@ -29,7 +29,7 @@
         >
           <div class="category-card-mobile">
             <div class="category-icon" :class="currentType">
-              <el-icon size="20"><Folder /></el-icon>
+              <el-icon size="20"><component :is="getIconComponent(category.icon)" /></el-icon>
             </div>
             <div class="category-name">{{ category.name }}</div>
             <el-tag v-if="category.isSystem" size="small" type="info">系统</el-tag>
@@ -42,7 +42,7 @@
         <div v-for="category in filteredCategories" :key="category.id" class="category-card">
           <div class="category-info">
             <div class="category-icon" :class="currentType">
-              <el-icon size="20"><Folder /></el-icon>
+              <el-icon size="20"><component :is="getIconComponent(category.icon)" /></el-icon>
             </div>
             <div class="category-name">{{ category.name }}</div>
           </div>
@@ -112,6 +112,7 @@ import { useCategoryStore } from '@/stores/category';
 import { useDevice } from '@/composables/useDevice';
 import SwipeAction from '@/components/mobile/SwipeAction.vue';
 import BottomSheet from '@/components/mobile/BottomSheet.vue';
+import { getIconComponent } from '@/utils/iconMap';
 import type { Category, CategoryType } from '@/types';
 
 const { isMobile } = useDevice();

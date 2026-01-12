@@ -60,7 +60,7 @@
             :class="{ active: form.categoryId === cat.id }"
             @click="form.categoryId = cat.id"
           >
-            <el-icon><Folder /></el-icon>
+            <el-icon><component :is="getIconComponent(cat.icon)" /></el-icon>
             <span>{{ cat.name }}</span>
           </div>
         </div>
@@ -141,6 +141,7 @@ import { useAccountStore } from '@/stores/account';
 import { useCategoryStore } from '@/stores/category';
 import { useTransactionStore } from '@/stores/transaction';
 import { useDevice } from '@/composables/useDevice';
+import { getIconComponent } from '@/utils/iconMap';
 import { aiApi } from '@/api';
 import type { TransactionType } from '@/types';
 
