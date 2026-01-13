@@ -32,6 +32,13 @@ router.get(
   familyController.get
 );
 
+// 获取家庭成员列表
+router.get(
+  "/:id/members",
+  [param("id").isInt({ min: 1 }).withMessage("无效的家庭ID")],
+  familyController.getMembers
+);
+
 // 创建家庭
 router.post(
   "/",

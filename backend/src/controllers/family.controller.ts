@@ -35,6 +35,24 @@ class FamilyController {
     }
   }
 
+  // 获取家庭成员列表
+  async getMembers(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        throw new AppError("未授权", 401, ErrorCode.UNAUTHORIZED);
+      }
+
+      const { id } = req.params;
+      const members = await familyService.getMembers(
+        parseInt(id, 10),
+        req.user.id
+      );
+      return success(res, members);
+    } catch (err) {
+      next(err);
+    }
+  }
+
   // 创建家庭
   async create(req: AuthRequest, res: Response, next: NextFunction) {
     try {

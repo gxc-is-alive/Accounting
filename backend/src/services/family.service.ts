@@ -56,6 +56,31 @@ class FamilyService {
     }
   }
 
+  // 获取家庭成员列表
+  async getMembers(familyId: number, userId: number) {
+    // 验证用户是家庭成员
+    const membership = await FamilyMember.findOne({
+      where: { familyId, userId },
+    });
+
+    if (!membership) {
+      throw new AppError("您不是该家庭的成员", 403, ErrorCode.FORBIDDEN);
+    }
+
+    const members = await FamilyMember.findAll({
+      where: { familyId },
+      include: [
+        {
+          model: User,
+          as: "user",
+          attributes: ["id", "nickname", "email"],
+        },
+      ],
+    });
+
+    return members;
+  }
+
   // 获取单个家庭详情
   async getById(familyId: number, userId: number) {
     // 验证用户是家庭成员
