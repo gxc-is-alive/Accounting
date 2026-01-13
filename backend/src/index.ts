@@ -6,7 +6,6 @@ import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import authRoutes from "./routes/auth.routes";
 import accountRoutes from "./routes/account.routes";
 import categoryRoutes from "./routes/category.routes";
-import billTypeRoutes from "./routes/billType.routes";
 import transactionRoutes from "./routes/transaction.routes";
 import familyRoutes from "./routes/family.routes";
 import statisticsRoutes from "./routes/statistics.routes";
@@ -15,6 +14,8 @@ import aiRoutes from "./routes/ai.routes";
 import repaymentRoutes from "./routes/repayment.routes";
 import exportRoutes from "./routes/export.routes";
 import attachmentRoutes from "./routes/attachment.routes";
+import migrationRoutes from "./routes/migration.routes";
+import investmentRoutes from "./routes/investment.routes";
 
 // 创建 Express 应用
 const app: Application = express();
@@ -33,7 +34,6 @@ app.get("/health", (_req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/accounts", accountRoutes);
 app.use("/api/categories", categoryRoutes);
-app.use("/api/bill-types", billTypeRoutes);
 app.use("/api/transactions", transactionRoutes);
 app.use("/api/families", familyRoutes);
 app.use("/api/statistics", statisticsRoutes);
@@ -42,16 +42,11 @@ app.use("/api/ai", aiRoutes);
 app.use("/api/repayments", repaymentRoutes);
 app.use("/api/export", exportRoutes);
 app.use("/api/attachments", attachmentRoutes);
+app.use("/api/migration", migrationRoutes);
+app.use("/api/investment", investmentRoutes);
 
 // 静态文件服务 - 用于访问上传的附件
 app.use("/uploads", express.static("uploads"));
-// app.use('/api/categories', categoryRoutes);
-// app.use('/api/bill-types', billTypeRoutes);
-// app.use('/api/transactions', transactionRoutes);
-// app.use('/api/families', familyRoutes);
-// app.use('/api/budgets', budgetRoutes);
-// app.use('/api/statistics', statisticsRoutes);
-// app.use('/api/ai', aiRoutes);
 
 // 404 处理
 app.use(notFoundHandler);

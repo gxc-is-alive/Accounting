@@ -17,7 +17,6 @@ interface FamilyTransactionFilters {
   endDate?: string;
   memberId?: number;
   categoryId?: number;
-  billTypeId?: number;
   type?: "income" | "expense";
   page?: number;
   pageSize?: number;
@@ -309,9 +308,6 @@ class StatisticsService {
     }
     if (filters.categoryId) {
       whereClause.categoryId = filters.categoryId;
-    }
-    if (filters.billTypeId) {
-      whereClause.billTypeId = filters.billTypeId;
     }
     if (filters.type) {
       whereClause.type = filters.type;

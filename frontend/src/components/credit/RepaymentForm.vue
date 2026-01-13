@@ -128,7 +128,6 @@ import type { Account, CreditAccountDetails } from '@/types';
 const props = defineProps<{
   initialCreditAccountId?: number;
   categoryId: number;
-  billTypeId: number;
 }>();
 
 const emit = defineEmits<{
@@ -253,7 +252,6 @@ const handleSubmit = async () => {
         date: form.date,
         note: form.note || undefined,
         categoryId: props.categoryId,
-        billTypeId: props.billTypeId,
       }) as unknown as { success: boolean; data: { error?: string } };
 
       if (res.success) {

@@ -44,6 +44,14 @@
         @view-detail="goToFamilyReport"
       />
 
+      <!-- 投资概览 -->
+      <InvestmentOverviewCard
+        ref="investmentOverviewRef"
+        class="page-card"
+        @view-detail="goToInvestment"
+        @add="goToInvestment"
+      />
+
       <!-- 最近交易 -->
       <div class="page-card">
         <h3 class="page-title">最近交易</h3>
@@ -136,6 +144,14 @@
           @view-detail="goToFamilyReport"
         />
 
+        <!-- 投资概览 -->
+        <InvestmentOverviewCard
+          ref="investmentOverviewRef"
+          class="page-card"
+          @view-detail="goToInvestment"
+          @add="goToInvestment"
+        />
+
         <div class="page-card transactions-card">
           <h3 class="page-title">最近交易</h3>
           <el-empty v-if="!recentTransactions.length" description="暂无交易记录" />
@@ -192,6 +208,7 @@ import { useDevice } from '@/composables/useDevice';
 import PullRefresh from '@/components/mobile/PullRefresh.vue';
 import RepaymentReminder from '@/components/credit/RepaymentReminder.vue';
 import FamilyOverviewCard from '@/components/family/FamilyOverviewCard.vue';
+import { InvestmentOverviewCard } from '@/components/investment';
 
 const router = useRouter();
 const { device } = useDevice();
@@ -199,6 +216,7 @@ const isMobile = computed(() => device.value.isMobile);
 
 const reminderRef = ref<InstanceType<typeof RepaymentReminder>>();
 const familyOverviewRef = ref<InstanceType<typeof FamilyOverviewCard>>();
+const investmentOverviewRef = ref<InstanceType<typeof InvestmentOverviewCard>>();
 
 const statistics = ref<MonthlyStatistics>({
   month: '',
@@ -272,6 +290,10 @@ const goToFamilyReport = () => {
   router.push('/family/report');
 };
 
+const goToInvestment = () => {
+  router.push('/investment');
+};
+
 const loadAllData = async () => {
   await Promise.all([
     loadStatistics(),
@@ -288,6 +310,7 @@ const onRefresh = async () => {
     await loadAllData();
     reminderRef.value?.refresh();
     familyOverviewRef.value?.refresh();
+    investmentOverviewRef.value?.refresh();
   } finally {
     refreshing.value = false;
   }

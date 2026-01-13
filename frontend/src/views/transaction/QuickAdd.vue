@@ -67,28 +67,14 @@
       </div>
 
       <!-- 账户选择 -->
+      <AccountCardSelector
+        v-model="form.accountId"
+        :accounts="sortedAccounts"
+      />
+
+      <!-- 其他表单项 -->
       <div class="form-section">
         <el-form :label-width="isMobile ? '70px' : '80px'">
-          <el-form-item label="账户">
-            <el-select v-model="form.accountId" placeholder="选择账户" style="width: 100%">
-              <el-option
-                v-for="acc in accounts"
-                :key="acc.id"
-                :label="acc.name"
-                :value="acc.id"
-              />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="账单类型">
-            <el-select v-model="form.billTypeId" placeholder="选择账单类型" style="width: 100%">
-              <el-option
-                v-for="bt in billTypes"
-                :key="bt.id"
-                :label="bt.name"
-                :value="bt.id"
-              />
-            </el-select>
-          </el-form-item>
           <el-form-item label="日期">
             <el-date-picker
               v-model="form.date"
@@ -143,10 +129,12 @@ import { useAccountStore } from '@/stores/account';
 import { useCategoryStore } from '@/stores/category';
 import { useTransactionStore } from '@/stores/transaction';
 import { useDevice } from '@/composables/useDevice';
+import { useAccountUsage } from '@/composables/useAccountUsage';
 import { getIconComponent } from '@/utils/iconMap';
 import { aiApi, attachmentApi } from '@/api';
 import type { TransactionType, Attachment } from '@/types';
 import AttachmentUpload from '@/components/attachment/AttachmentUpload.vue';
+import AccountCardSelector from '@/components/account/AccountCardSelector.vue';
 
 const router = useRouter();
 const { device } = useDevice();
@@ -155,9 +143,10 @@ const isMobile = computed(() => device.value.isMobile);
 const accountStore = useAccountStore();
 const categoryStore = useCategoryStore();
 const transactionStore = useTransactionStore();
+const { getSortedAccounts, recordUsage } = useAccountUsage();
 
 const accounts = computed(() => accountStore.accounts);
-const billTypes = computed(() => categoryStore.billTypes);
+const sortedAccounts = computed(() => getSortedAccounts(accounts.value));
 const currentCategories = computed(() =>
   form.type === 'income'
     ? categoryStore.incomeCategories
@@ -169,7 +158,6 @@ const form = reactive({
   amount: '',
   categoryId: null as number | null,
   accountId: null as number | null,
-  billTypeId: null as number | null,
   date: new Date().toISOString().split('T')[0],
   note: '',
 });
@@ -242,10 +230,6 @@ const handleSubmit = async () => {
     ElMessage.warning('请选择账户');
     return;
   }
-  if (!form.billTypeId) {
-    ElMessage.warning('请选择账单类型');
-    return;
-  }
 
   submitting.value = true;
   try {
@@ -254,10 +238,14 @@ const handleSubmit = async () => {
       amount: parseFloat(form.amount),
       categoryId: form.categoryId,
       accountId: form.accountId,
-      billTypeId: form.billTypeId,
       date: form.date,
       note: form.note,
     });
+    
+    // 记录账户使用（用于智能排序）
+    if (form.accountId) {
+      recordUsage(form.accountId);
+    }
     
     // 关联附件到交易
     if (attachments.value.length > 0 && transaction) {
@@ -301,12 +289,9 @@ onMounted(async () => {
     categoryStore.init(),
   ]);
   
-  // 设置默认值
-  if (accounts.value.length > 0) {
-    form.accountId = accounts.value[0].id;
-  }
-  if (billTypes.value.length > 0) {
-    form.billTypeId = billTypes.value[0].id;
+  // 设置默认值：选中排序后的第一个账户
+  if (sortedAccounts.value.length > 0) {
+    form.accountId = sortedAccounts.value[0].id;
   }
 });
 </script>

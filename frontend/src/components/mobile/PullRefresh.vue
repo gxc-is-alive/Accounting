@@ -83,7 +83,6 @@ const pullDistance = ref(0)
 let startY = 0
 let deltaY = 0
 let isTouching = false
-let isReachTop = false
 
 // 计算是否可以下拉
 const canPull = computed(() => {
@@ -92,17 +91,18 @@ const canPull = computed(() => {
 
 // 检查是否滚动到顶部
 const checkReachTop = (): boolean => {
-  if (!containerRef.value) return false
-  const scrollTop = containerRef.value.scrollTop
-  return scrollTop === 0
+  // 优先检查容器自身的滚动
+  if (containerRef.value && containerRef.value.scrollTop > 0) {
+    return false
+  }
+  // 检查 window/document 的滚动位置
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0
+  return scrollTop <= 0
 }
 
 // 触摸开始
 const onTouchStart = (e: TouchEvent) => {
   if (!canPull.value) return
-  
-  isReachTop = checkReachTop()
-  if (!isReachTop) return
   
   isTouching = true
   startY = e.touches[0].clientY
@@ -111,19 +111,25 @@ const onTouchStart = (e: TouchEvent) => {
 
 // 触摸移动
 const onTouchMove = (e: TouchEvent) => {
-  if (!isTouching || !canPull.value || !isReachTop) return
+  if (!isTouching || !canPull.value) return
   
   const currentY = e.touches[0].clientY
   deltaY = currentY - startY
   
-  // 只处理下拉
-  if (deltaY <= 0) {
-    pullDistance.value = 0
-    status.value = 'normal'
+  // 实时检查是否在顶部
+  const atTop = checkReachTop()
+  
+  // 只有在顶部且向下拉时才触发下拉刷新
+  if (!atTop || deltaY <= 0) {
+    // 不在顶部或向上滑动，重置状态，允许正常滚动
+    if (pullDistance.value > 0) {
+      pullDistance.value = 0
+      status.value = 'normal'
+    }
     return
   }
   
-  // 阻止默认滚动
+  // 在顶部且向下拉，阻止默认滚动
   e.preventDefault()
   
   // 阻尼效果：下拉距离越大，阻力越大
@@ -172,14 +178,12 @@ watch(() => props.loading, (newVal, oldVal) => {
 
 <style scoped>
 .pull-refresh {
-  overflow-y: auto;
-  height: 100%;
-  -webkit-overflow-scrolling: touch;
+  position: relative;
 }
 
 .pull-refresh__track {
   position: relative;
-  transition: transform var(--transition-normal) ease;
+  transition: transform var(--transition-normal, 0.3s) ease;
 }
 
 .pull-refresh__head {

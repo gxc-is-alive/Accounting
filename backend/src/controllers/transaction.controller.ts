@@ -17,7 +17,6 @@ class TransactionController {
         familyId,
         accountId,
         categoryId,
-        billTypeId,
         type,
         startDate,
         endDate,
@@ -30,7 +29,6 @@ class TransactionController {
         familyId: familyId ? parseInt(familyId as string, 10) : undefined,
         accountId: accountId ? parseInt(accountId as string, 10) : undefined,
         categoryId: categoryId ? parseInt(categoryId as string, 10) : undefined,
-        billTypeId: billTypeId ? parseInt(billTypeId as string, 10) : undefined,
         type: type as "income" | "expense" | undefined,
         startDate: startDate as string | undefined,
         endDate: endDate as string | undefined,
@@ -83,7 +81,6 @@ class TransactionController {
       const {
         accountId,
         categoryId,
-        billTypeId,
         type,
         amount,
         date,
@@ -96,7 +93,6 @@ class TransactionController {
         userId: req.user.id,
         accountId,
         categoryId,
-        billTypeId,
         type,
         amount,
         date,
@@ -129,16 +125,8 @@ class TransactionController {
       }
 
       const { id } = req.params;
-      const {
-        accountId,
-        categoryId,
-        billTypeId,
-        type,
-        amount,
-        date,
-        note,
-        isFamily,
-      } = req.body;
+      const { accountId, categoryId, type, amount, date, note, isFamily } =
+        req.body;
 
       const transaction = await transactionService.update(
         parseInt(id, 10),
@@ -146,7 +134,6 @@ class TransactionController {
         {
           accountId,
           categoryId,
-          billTypeId,
           type,
           amount,
           date,
@@ -213,16 +200,8 @@ class TransactionController {
       }
 
       const { familyId } = req.params;
-      const {
-        memberId,
-        categoryId,
-        billTypeId,
-        type,
-        startDate,
-        endDate,
-        page,
-        pageSize,
-      } = req.query;
+      const { memberId, categoryId, type, startDate, endDate, page, pageSize } =
+        req.query;
 
       // 使用统计服务的家庭交易查询方法
       const statisticsService = (await import("../services/statistics.service"))
@@ -235,9 +214,6 @@ class TransactionController {
           memberId: memberId ? parseInt(memberId as string, 10) : undefined,
           categoryId: categoryId
             ? parseInt(categoryId as string, 10)
-            : undefined,
-          billTypeId: billTypeId
-            ? parseInt(billTypeId as string, 10)
             : undefined,
           type: type as "income" | "expense" | undefined,
           startDate: startDate as string | undefined,

@@ -43,7 +43,6 @@ router.post(
   [
     body("accountId").isInt({ min: 1 }).withMessage("请选择账户"),
     body("categoryId").isInt({ min: 1 }).withMessage("请选择分类"),
-    body("billTypeId").isInt({ min: 1 }).withMessage("请选择账单类型"),
     body("type").isIn(["income", "expense"]).withMessage("无效的交易类型"),
     body("amount").isFloat({ min: 0.01 }).withMessage("金额必须大于0"),
     body("date").isISO8601().withMessage("无效的日期格式"),
@@ -65,10 +64,6 @@ router.put(
     param("id").isInt({ min: 1 }).withMessage("无效的交易ID"),
     body("accountId").optional().isInt({ min: 1 }).withMessage("无效的账户ID"),
     body("categoryId").optional().isInt({ min: 1 }).withMessage("无效的分类ID"),
-    body("billTypeId")
-      .optional()
-      .isInt({ min: 1 })
-      .withMessage("无效的账单类型ID"),
     body("type")
       .optional()
       .isIn(["income", "expense"])
@@ -107,10 +102,6 @@ router.get(
       .optional()
       .isInt({ min: 1 })
       .withMessage("无效的分类ID"),
-    query("billTypeId")
-      .optional()
-      .isInt({ min: 1 })
-      .withMessage("无效的账单类型ID"),
     query("type")
       .optional()
       .isIn(["income", "expense"])

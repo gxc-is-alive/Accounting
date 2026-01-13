@@ -101,7 +101,6 @@
         v-if="repayDialogVisible"
         :initial-credit-account-id="selectedCreditAccountId"
         :category-id="defaultCategoryId"
-        :bill-type-id="defaultBillTypeId"
         @cancel="repayDialogVisible = false"
         @success="onRepaySuccess"
       />
@@ -117,7 +116,6 @@
         v-if="repayDialogVisible"
         :initial-credit-account-id="selectedCreditAccountId"
         :category-id="defaultCategoryId"
-        :bill-type-id="defaultBillTypeId"
         @cancel="repayDialogVisible = false"
         @success="onRepaySuccess"
       />
@@ -145,9 +143,8 @@ const reminderRef = ref<InstanceType<typeof RepaymentReminder>>();
 const repayDialogVisible = ref(false);
 const selectedCreditAccountId = ref<number | undefined>();
 
-// 默认分类和账单类型 ID（需要根据实际情况配置）
+// 默认分类 ID（需要根据实际情况配置）
 const defaultCategoryId = 1;
-const defaultBillTypeId = 1;
 
 // 信用账户列表
 const creditAccounts = computed(() =>

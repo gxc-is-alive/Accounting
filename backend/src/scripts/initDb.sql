@@ -57,12 +57,15 @@ CREATE TABLE IF NOT EXISTS accounts (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
     name VARCHAR(100) NOT NULL,
-    type ENUM('cash', 'bank', 'alipay', 'wechat', 'credit', 'other') NOT NULL,
+    type ENUM('cash', 'bank', 'alipay', 'wechat', 'credit', 'investment', 'other') NOT NULL,
     balance DECIMAL(15, 2) DEFAULT 0,
     icon VARCHAR(50),
     credit_limit DECIMAL(15, 2),
     billing_day TINYINT,
     due_day TINYINT,
+    shares DECIMAL(15, 4),
+    cost_price DECIMAL(15, 4),
+    current_net_value DECIMAL(15, 4),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -87,22 +90,6 @@ CREATE TABLE IF NOT EXISTS categories (
     INDEX idx_is_system (is_system)
 );
 
--- 账单类型表
-CREATE TABLE IF NOT EXISTS bill_types (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT,
-    name VARCHAR(100) NOT NULL,
-    description VARCHAR(255) DEFAULT '',
-    icon VARCHAR(50) DEFAULT 'default',
-    is_system BOOLEAN DEFAULT FALSE,
-    sort_order INT DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_user_id (user_id),
-    INDEX idx_is_system (is_system)
-);
-
 -- 交易记录表
 CREATE TABLE IF NOT EXISTS transactions (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -110,7 +97,6 @@ CREATE TABLE IF NOT EXISTS transactions (
     family_id INT,
     account_id INT NOT NULL,
     category_id INT NOT NULL,
-    bill_type_id INT NOT NULL,
     type ENUM('income', 'expense', 'repayment') NOT NULL,
     amount DECIMAL(15, 2) NOT NULL,
     date DATE NOT NULL,
@@ -123,7 +109,6 @@ CREATE TABLE IF NOT EXISTS transactions (
     FOREIGN KEY (family_id) REFERENCES families(id) ON DELETE SET NULL,
     FOREIGN KEY (account_id) REFERENCES accounts(id),
     FOREIGN KEY (category_id) REFERENCES categories(id),
-    FOREIGN KEY (bill_type_id) REFERENCES bill_types(id),
     FOREIGN KEY (source_account_id) REFERENCES accounts(id),
     INDEX idx_user_date (user_id, date),
     INDEX idx_family_date (family_id, date)
@@ -141,6 +126,19 @@ CREATE TABLE IF NOT EXISTS budgets (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
     UNIQUE KEY unique_user_category_month (user_id, category_id, month)
+);
+
+-- 估值记录表（投资追踪）
+CREATE TABLE IF NOT EXISTS valuations (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    account_id INT NOT NULL,
+    net_value DECIMAL(15, 4) NOT NULL,
+    market_value DECIMAL(15, 2) NOT NULL,
+    date DATE NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_account_date (account_id, date),
+    INDEX idx_account_date (account_id, date)
 );
 
 -- Token 黑名单表（用于退出登录）
@@ -278,23 +276,3 @@ INSERT INTO categories (name, type, icon, is_system, sort_order) VALUES
 ('中奖', 'income', 'lottery', TRUE, 33),
 ('卖闲置', 'income', 'secondhand', TRUE, 34),
 ('其他收入', 'income', 'other', TRUE, 99);
-
--- =====================================================
--- 系统预设账单类型
--- =====================================================
-INSERT INTO bill_types (name, description, icon, is_system, sort_order) VALUES
-('日常消费', '餐饮、购物、交通等日常开销', 'daily', TRUE, 1),
-('固定支出', '房租、水电、话费等周期性支出', 'fixed', TRUE, 2),
-('人情往来', '红包、礼金、请客等社交支出', 'social', TRUE, 3),
-('网购', '淘宝、京东、拼多多等网购消费', 'online', TRUE, 4),
-('线下消费', '超市、商场、门店等线下消费', 'offline', TRUE, 5),
-('餐饮外卖', '美团、饿了么等外卖消费', 'takeaway', TRUE, 6),
-('出行交通', '打车、公交、加油等出行费用', 'transport', TRUE, 7),
-('医疗健康', '看病、买药、体检等医疗支出', 'medical', TRUE, 8),
-('教育培训', '学费、课程、书籍等教育支出', 'education', TRUE, 9),
-('娱乐休闲', '电影、游戏、旅游等娱乐消费', 'entertainment', TRUE, 10),
-('投资理财', '基金、股票、存款等投资类', 'invest', TRUE, 11),
-('工资收入', '工资、奖金等劳动收入', 'salary', TRUE, 12),
-('副业收入', '兼职、外包、稿费等额外收入', 'sidejob', TRUE, 13),
-('转账', '账户间转账、借还款等', 'transfer', TRUE, 14),
-('其他', '其他类型', 'other', TRUE, 99);

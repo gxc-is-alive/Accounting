@@ -11,15 +11,23 @@ echo "=========================================="
 cd /opt/family-accounting
 
 echo ""
-echo "[1/3] 拉取最新镜像..."
+echo "[1/4] 拉取最新镜像..."
 docker-compose -f docker-compose.cloud.yml pull
 
 echo ""
-echo "[2/3] 重启服务..."
+echo "[2/4] 重启服务..."
 docker-compose -f docker-compose.cloud.yml up -d
 
 echo ""
-echo "[3/3] 清理旧镜像..."
+echo "[3/4] 等待服务启动..."
+sleep 10
+
+echo ""
+echo "[4/4] 执行数据库迁移..."
+curl -X POST http://localhost:3000/api/migration/run || echo "迁移接口调用失败，请手动检查"
+
+echo ""
+echo "[5/5] 清理旧镜像..."
 docker image prune -f
 
 echo ""

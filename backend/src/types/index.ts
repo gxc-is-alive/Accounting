@@ -18,6 +18,7 @@ export type AccountType =
   | "alipay"
   | "wechat"
   | "credit"
+  | "investment"
   | "other";
 
 // 交易类型枚举
@@ -60,7 +61,6 @@ export interface TransactionFilters extends PaginationParams {
   startDate?: string;
   endDate?: string;
   categoryId?: number;
-  billTypeId?: number;
   accountId?: number;
   type?: TransactionType;
   familyId?: number;

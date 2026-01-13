@@ -1,5 +1,5 @@
 import { Op, WhereOptions } from "sequelize";
-import { Transaction, Account, Category, BillType } from "../models";
+import { Transaction, Account, Category } from "../models";
 import { TransactionType } from "../models/Transaction";
 import { AppError, ErrorCode } from "../utils/errors";
 import { sequelize } from "../config/database";
@@ -8,7 +8,6 @@ interface CreateTransactionData {
   userId: number;
   accountId: number;
   categoryId: number;
-  billTypeId: number;
   type: TransactionType;
   amount: number;
   date: Date | string;
@@ -20,7 +19,6 @@ interface CreateTransactionData {
 interface UpdateTransactionData {
   accountId?: number;
   categoryId?: number;
-  billTypeId?: number;
   type?: TransactionType;
   amount?: number;
   date?: Date | string;
@@ -33,7 +31,6 @@ interface TransactionFilter {
   familyId?: number;
   accountId?: number;
   categoryId?: number;
-  billTypeId?: number;
   type?: TransactionType;
   startDate?: string;
   endDate?: string;
@@ -66,24 +63,12 @@ class TransactionService {
         throw new AppError("分类不存在", 404, ErrorCode.NOT_FOUND);
       }
 
-      // 验证账单类型存在
-      const billType = await BillType.findOne({
-        where: {
-          id: data.billTypeId,
-          [Op.or]: [{ userId: null, isSystem: true }, { userId: data.userId }],
-        },
-      });
-      if (!billType) {
-        throw new AppError("账单类型不存在", 404, ErrorCode.NOT_FOUND);
-      }
-
       // 创建交易
       const transaction = await Transaction.create(
         {
           userId: data.userId,
           accountId: data.accountId,
           categoryId: data.categoryId,
-          billTypeId: data.billTypeId,
           type: data.type,
           amount: data.amount,
           date: new Date(data.date),
@@ -132,7 +117,6 @@ class TransactionService {
           as: "category",
           attributes: ["id", "name", "type", "icon"],
         },
-        { model: BillType, as: "billType", attributes: ["id", "name", "icon"] },
       ],
     });
 
@@ -150,7 +134,6 @@ class TransactionService {
       familyId,
       accountId,
       categoryId,
-      billTypeId,
       type,
       startDate,
       endDate,
@@ -168,9 +151,6 @@ class TransactionService {
     }
     if (categoryId) {
       where.categoryId = categoryId;
-    }
-    if (billTypeId) {
-      where.billTypeId = billTypeId;
     }
     if (type) {
       where.type = type;
@@ -198,7 +178,6 @@ class TransactionService {
           as: "category",
           attributes: ["id", "name", "type", "icon"],
         },
-        { model: BillType, as: "billType", attributes: ["id", "name", "icon"] },
       ],
       order: [
         ["date", "DESC"],
@@ -257,19 +236,6 @@ class TransactionService {
         }
       }
 
-      // 验证账单类型
-      if (data.billTypeId) {
-        const billType = await BillType.findOne({
-          where: {
-            id: data.billTypeId,
-            [Op.or]: [{ userId: null, isSystem: true }, { userId }],
-          },
-        });
-        if (!billType) {
-          throw new AppError("账单类型不存在", 404, ErrorCode.NOT_FOUND);
-        }
-      }
-
       // 计算余额调整
       const newAmount = data.amount ?? oldAmount;
       const newType = data.type ?? oldType;
@@ -294,7 +260,6 @@ class TransactionService {
         {
           accountId: newAccountId,
           categoryId: data.categoryId,
-          billTypeId: data.billTypeId,
           type: newType,
           amount: newAmount,
           date: data.date ? new Date(data.date) : undefined,

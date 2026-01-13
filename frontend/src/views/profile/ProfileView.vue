@@ -57,11 +57,6 @@
           <span class="item-text">分类管理</span>
           <el-icon :size="16" class="item-arrow"><ArrowRight /></el-icon>
         </router-link>
-        <router-link to="/settings/bill-types" class="mobile-list-item touchable">
-          <el-icon :size="20" class="item-icon"><Document /></el-icon>
-          <span class="item-text">账单类型</span>
-          <el-icon :size="16" class="item-arrow"><ArrowRight /></el-icon>
-        </router-link>
       </div>
     </div>
 
@@ -88,7 +83,6 @@ import {
   ChatDotRound,
   CreditCard,
   Grid,
-  Document,
   SwitchButton,
   ArrowRight,
 } from '@element-plus/icons-vue';

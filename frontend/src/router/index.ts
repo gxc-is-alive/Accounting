@@ -81,16 +81,16 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "分类管理" },
       },
       {
-        path: "settings/bill-types",
-        name: "BillTypeManage",
-        component: () => import("@/views/settings/BillTypeManage.vue"),
-        meta: { title: "账单类型" },
-      },
-      {
         path: "credit/repayment",
         name: "CreditRepayment",
         component: () => import("@/views/credit/RepaymentView.vue"),
         meta: { title: "信用还款" },
+      },
+      {
+        path: "investment",
+        name: "Investment",
+        component: () => import("@/views/investment/InvestmentManage.vue"),
+        meta: { title: "投资管理" },
       },
       {
         path: "ai",

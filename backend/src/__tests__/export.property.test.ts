@@ -9,7 +9,6 @@ import ExportService, {
   ExportData,
   AccountExportData,
   CategoryExportData,
-  BillTypeExportData,
   TransactionExportData,
   BudgetExportData,
 } from "../services/export.service";
@@ -46,14 +45,6 @@ const categoryArb = fc.record({
   }),
 }) as fc.Arbitrary<CategoryExportData>;
 
-// 生成器：账单类型数据
-const billTypeArb = fc.record({
-  name: fc.string({ minLength: 1, maxLength: 30 }),
-  description: fc.string({ maxLength: 100 }),
-  icon: fc.string({ minLength: 1, maxLength: 20 }),
-  isSystem: fc.boolean(),
-}) as fc.Arbitrary<BillTypeExportData>;
-
 // 生成器：交易数据
 const transactionArb = fc.record({
   type: fc.constantFrom("income", "expense", "repayment") as fc.Arbitrary<
@@ -65,7 +56,6 @@ const transactionArb = fc.record({
     .map((d) => d.toISOString().split("T")[0]),
   accountName: fc.string({ minLength: 1, maxLength: 50 }),
   categoryName: fc.string({ minLength: 1, maxLength: 30 }),
-  billTypeName: fc.string({ minLength: 1, maxLength: 30 }),
   note: fc.string({ maxLength: 200 }),
   isFamily: fc.boolean(),
 }) as fc.Arbitrary<TransactionExportData>;
@@ -93,7 +83,6 @@ const exportDataArb = fc.record({
   }),
   accounts: fc.array(accountArb, { minLength: 0, maxLength: 10 }),
   categories: fc.array(categoryArb, { minLength: 0, maxLength: 20 }),
-  billTypes: fc.array(billTypeArb, { minLength: 0, maxLength: 10 }),
   transactions: fc.array(transactionArb, { minLength: 0, maxLength: 50 }),
   budgets: fc.array(budgetArb, { minLength: 0, maxLength: 10 }),
 }) as fc.Arbitrary<ExportData>;
@@ -150,7 +139,6 @@ describe("数据导出属性测试", () => {
           expect(data.user).toBeDefined();
           expect(Array.isArray(data.accounts)).toBe(true);
           expect(Array.isArray(data.categories)).toBe(true);
-          expect(Array.isArray(data.billTypes)).toBe(true);
           expect(Array.isArray(data.transactions)).toBe(true);
           expect(Array.isArray(data.budgets)).toBe(true);
         }),
@@ -271,15 +259,7 @@ describe("CSV 导出属性测试", () => {
           (transactions) => {
             // 模拟 CSV 生成（使用相同的逻辑）
             const BOM = "\uFEFF";
-            const headers = [
-              "日期",
-              "类型",
-              "金额",
-              "分类",
-              "账户",
-              "账单类型",
-              "备注",
-            ];
+            const headers = ["日期", "类型", "金额", "分类", "账户", "备注"];
             const rows: string[] = [headers.join(",")];
 
             for (const t of transactions) {
@@ -295,7 +275,6 @@ describe("CSV 导出属性测试", () => {
                 t.amount.toString(),
                 t.categoryName,
                 t.accountName,
-                t.billTypeName,
                 t.note,
               ];
               rows.push(row.join(","));
@@ -317,15 +296,7 @@ describe("CSV 导出属性测试", () => {
           fc.array(transactionArb, { minLength: 0, maxLength: 5 }),
           (transactions) => {
             const BOM = "\uFEFF";
-            const headers = [
-              "日期",
-              "类型",
-              "金额",
-              "分类",
-              "账户",
-              "账单类型",
-              "备注",
-            ];
+            const headers = ["日期", "类型", "金额", "分类", "账户", "备注"];
             const rows: string[] = [headers.join(",")];
 
             for (const t of transactions) {
@@ -342,7 +313,6 @@ describe("CSV 导出属性测试", () => {
                   t.amount.toString(),
                   t.categoryName,
                   t.accountName,
-                  t.billTypeName,
                   t.note,
                 ].join(",")
               );
@@ -356,7 +326,6 @@ describe("CSV 导出属性测试", () => {
             expect(parsed.headers).toContain("金额");
             expect(parsed.headers).toContain("分类");
             expect(parsed.headers).toContain("账户");
-            expect(parsed.headers).toContain("账单类型");
             expect(parsed.headers).toContain("备注");
           }
         ),
@@ -370,15 +339,7 @@ describe("CSV 导出属性测试", () => {
           fc.array(transactionArb, { minLength: 0, maxLength: 20 }),
           (transactions) => {
             const BOM = "\uFEFF";
-            const headers = [
-              "日期",
-              "类型",
-              "金额",
-              "分类",
-              "账户",
-              "账单类型",
-              "备注",
-            ];
+            const headers = ["日期", "类型", "金额", "分类", "账户", "备注"];
             const rows: string[] = [headers.join(",")];
 
             for (const t of transactions) {
@@ -395,7 +356,6 @@ describe("CSV 导出属性测试", () => {
                   t.amount.toString(),
                   t.categoryName,
                   t.accountName,
-                  t.billTypeName,
                   t.note,
                 ].join(",")
               );
@@ -518,7 +478,6 @@ describe("导入验证属性测试", () => {
         "user",
         "accounts",
         "categories",
-        "billTypes",
         "transactions",
         "budgets",
       ];
@@ -563,7 +522,6 @@ describe("导入功能属性测试", () => {
             const totalInput =
               data.accounts.length +
               data.categories.length +
-              data.billTypes.length +
               data.transactions.length +
               data.budgets.length;
 
@@ -660,7 +618,6 @@ describe("导入功能属性测试", () => {
           expect(parsed.version).toBe(data.version);
           expect(parsed.accounts.length).toBe(data.accounts.length);
           expect(parsed.categories.length).toBe(data.categories.length);
-          expect(parsed.billTypes.length).toBe(data.billTypes.length);
           expect(parsed.transactions.length).toBe(data.transactions.length);
           expect(parsed.budgets.length).toBe(data.budgets.length);
 

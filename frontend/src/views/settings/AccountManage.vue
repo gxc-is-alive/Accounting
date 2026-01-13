@@ -371,41 +371,53 @@ const handleEdit = (account: Account) => {
 };
 
 const handleSubmit = async () => {
-  if (!formRef.value) return;
-  
-  await formRef.value.validate(async (valid) => {
-    if (!valid) return;
-    
-    submitting.value = true;
-    try {
-      const data: Partial<Account> = {
-        name: form.name,
-        type: form.type,
-      };
-
-      // 信用账户额外字段
-      if (form.type === 'credit') {
-        data.creditLimit = form.creditLimit;
-        data.billingDay = form.billingDay;
-        data.dueDay = form.dueDay;
-      }
-
-      if (isEdit.value && editId.value) {
-        await accountStore.updateAccount(editId.value, data);
-        ElMessage.success('更新成功');
-      } else {
-        data.balance = form.initialBalance;
-        await accountStore.createAccount(data);
-        ElMessage.success('添加成功');
-      }
-      dialogVisible.value = false;
-    } catch (error: unknown) {
-      const err = error as { message?: string };
-      ElMessage.error(err.message || '操作失败');
-    } finally {
-      submitting.value = false;
+  // 移动端没有 formRef，需要手动验证
+  if (isMobile.value) {
+    // 简单验证：账户名称必填
+    if (!form.name.trim()) {
+      ElMessage.error('请输入账户名称');
+      return;
     }
-  });
+  } else {
+    // 桌面端使用 el-form 验证
+    if (!formRef.value) return;
+    try {
+      await formRef.value.validate();
+    } catch {
+      return;
+    }
+  }
+  
+  submitting.value = true;
+  try {
+    const data: Partial<Account> = {
+      name: form.name,
+      type: form.type,
+    };
+
+    // 信用账户额外字段
+    if (form.type === 'credit') {
+      data.creditLimit = form.creditLimit;
+      data.billingDay = form.billingDay;
+      data.dueDay = form.dueDay;
+    }
+
+    if (isEdit.value && editId.value) {
+      await accountStore.updateAccount(editId.value, data);
+      ElMessage.success('更新成功');
+    } else {
+      // 使用 initialBalance 字段名，与后端 API 保持一致
+      (data as Record<string, unknown>).initialBalance = form.initialBalance;
+      await accountStore.createAccount(data);
+      ElMessage.success('添加成功');
+    }
+    dialogVisible.value = false;
+  } catch (error: unknown) {
+    const err = error as { message?: string };
+    ElMessage.error(err.message || '操作失败');
+  } finally {
+    submitting.value = false;
+  }
 };
 
 const handleDelete = async (account: Account) => {

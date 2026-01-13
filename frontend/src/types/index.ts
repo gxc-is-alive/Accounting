@@ -28,6 +28,7 @@ export type AccountType =
   | "alipay"
   | "wechat"
   | "credit"
+  | "investment"
   | "other";
 
 export interface Account {
@@ -72,7 +73,6 @@ export interface Transaction {
   familyId?: number;
   accountId: number;
   categoryId: number;
-  billTypeId: number;
   type: TransactionType;
   amount: number;
   date: string;
@@ -85,7 +85,6 @@ export interface Transaction {
   // 关联数据
   account?: Account;
   category?: Category;
-  billType?: BillType;
   user?: User;
 }
 
@@ -99,17 +98,6 @@ export interface Category {
   type: CategoryType;
   icon?: string;
   parentId?: number;
-  isSystem: boolean;
-  createdAt: string;
-}
-
-// 账单类型
-export interface BillType {
-  id: number;
-  userId?: number;
-  name: string;
-  description?: string;
-  icon?: string;
   isSystem: boolean;
   createdAt: string;
 }
@@ -216,7 +204,6 @@ export interface TransactionFilters {
   startDate?: string;
   endDate?: string;
   categoryId?: number;
-  billTypeId?: number;
   accountId?: number;
   type?: TransactionType;
   familyId?: number;
@@ -232,7 +219,6 @@ export interface CreateRepaymentParams {
   date: string;
   note?: string;
   categoryId: number;
-  billTypeId: number;
 }
 
 export interface RepaymentResult {
@@ -349,7 +335,6 @@ export interface FamilyTransaction {
 export interface FamilyTransactionFilters {
   memberId?: number;
   categoryId?: number;
-  billTypeId?: number;
   type?: TransactionType;
   startDate?: string;
   endDate?: string;
@@ -410,3 +395,109 @@ export const FILE_SIZE_LIMITS = {
 
 // 最大附件数量
 export const MAX_ATTACHMENTS = 5;
+
+// ========== 投资追踪：类型定义 ==========
+
+// 投资账户
+export interface InvestmentAccount {
+  id: number;
+  userId: number;
+  name: string;
+  type: "investment";
+  shares: number; // 持仓份额
+  costPrice: number; // 成本价（每份）
+  currentNetValue: number; // 当前净值
+  balance: number; // 当前市值 = shares × currentNetValue
+  icon?: string;
+  createdAt: string;
+  // 计算字段
+  totalCost: number; // 总成本 = shares × costPrice
+  profit: number; // 盈亏 = balance - totalCost
+  profitRate: number; // 收益率 = profit / totalCost × 100
+}
+
+// 估值记录
+export interface ValuationRecord {
+  id: number;
+  accountId: number;
+  netValue: number;
+  marketValue: number;
+  date: string;
+  createdAt: string;
+}
+
+// 投资汇总
+export interface InvestmentSummary {
+  totalCost: number;
+  totalValue: number;
+  totalProfit: number;
+  profitRate: number;
+  accounts: InvestmentAccount[];
+}
+
+// 投资概览统计
+export interface InvestmentOverview {
+  totalCost: number;
+  totalValue: number;
+  totalProfit: number;
+  profitRate: number;
+  accountCount: number;
+}
+
+// 投资账户详情（含估值历史）
+export interface InvestmentAccountDetail extends InvestmentAccount {
+  valuationHistory: ValuationRecord[];
+}
+
+// 创建投资账户参数
+export interface CreateInvestmentAccountParams {
+  name: string;
+  shares: number;
+  costPrice: number;
+  currentNetValue: number;
+  icon?: string;
+}
+
+// 更新投资账户参数
+export interface UpdateInvestmentAccountParams {
+  name?: string;
+  icon?: string;
+}
+
+// 买入参数
+export interface BuySharesParams {
+  shares: number;
+  price: number;
+  date?: string;
+  sourceAccountId?: number;
+}
+
+// 卖出参数
+export interface SellSharesParams {
+  shares: number;
+  price: number;
+  date?: string;
+  targetAccountId?: number;
+}
+
+// 买入/卖出结果
+export interface TradeResult {
+  account: InvestmentAccount;
+  realizedProfit?: number;
+  tradeAmount: number;
+}
+
+// 净值更新参数
+export interface UpdateNetValueParams {
+  netValue: number;
+  date?: string;
+}
+
+// 批量净值更新参数
+export interface BatchUpdateNetValueParams {
+  valuations: Array<{
+    accountId: number;
+    netValue: number;
+  }>;
+  date?: string;
+}

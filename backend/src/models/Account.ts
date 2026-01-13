@@ -19,6 +19,10 @@ interface AccountAttributes {
   creditLimit?: number; // 信用额度
   billingDay?: number; // 账单日 (1-28)
   dueDay?: number; // 还款日 (1-28)
+  // 投资账户扩展字段
+  shares?: number; // 持仓份额
+  costPrice?: number; // 成本价（每份）
+  currentNetValue?: number; // 当前净值
   createdAt?: Date;
 }
 
@@ -32,6 +36,9 @@ interface AccountCreationAttributes
     | "creditLimit"
     | "billingDay"
     | "dueDay"
+    | "shares"
+    | "costPrice"
+    | "currentNetValue"
     | "createdAt"
   > {}
 
@@ -50,6 +57,10 @@ class Account
   public creditLimit?: number;
   public billingDay?: number;
   public dueDay?: number;
+  // 投资账户扩展字段
+  public shares?: number;
+  public costPrice?: number;
+  public currentNetValue?: number;
   public readonly createdAt!: Date;
 
   // 更新余额（支持事务）
@@ -64,6 +75,43 @@ class Account
   // 判断是否为信用账户
   public isCreditAccount(): boolean {
     return this.type === "credit";
+  }
+
+  // 判断是否为投资账户
+  public isInvestmentAccount(): boolean {
+    return this.type === "investment";
+  }
+
+  // 更新投资账户市值（份额 × 净值）
+  public updateMarketValue(): void {
+    if (this.isInvestmentAccount() && this.shares && this.currentNetValue) {
+      this.balance = Number(this.shares) * Number(this.currentNetValue);
+    }
+  }
+
+  // 获取投资账户总成本
+  public getTotalCost(): number {
+    if (this.isInvestmentAccount() && this.shares && this.costPrice) {
+      return Number(this.shares) * Number(this.costPrice);
+    }
+    return 0;
+  }
+
+  // 获取投资账户盈亏
+  public getProfit(): number {
+    if (this.isInvestmentAccount()) {
+      return Number(this.balance) - this.getTotalCost();
+    }
+    return 0;
+  }
+
+  // 获取投资账户收益率
+  public getProfitRate(): number {
+    const totalCost = this.getTotalCost();
+    if (totalCost > 0) {
+      return (this.getProfit() / totalCost) * 100;
+    }
+    return 0;
   }
 }
 
@@ -90,6 +138,7 @@ Account.init(
         "alipay",
         "wechat",
         "credit",
+        "investment",
         "other"
       ),
       allowNull: false,
@@ -133,6 +182,33 @@ Account.init(
       validate: {
         min: 1,
         max: 28,
+      },
+    },
+    // 投资账户扩展字段
+    shares: {
+      type: DataTypes.DECIMAL(15, 4),
+      allowNull: true,
+      get() {
+        const value = this.getDataValue("shares");
+        return value ? parseFloat(value.toString()) : undefined;
+      },
+    },
+    costPrice: {
+      type: DataTypes.DECIMAL(15, 4),
+      allowNull: true,
+      field: "cost_price",
+      get() {
+        const value = this.getDataValue("costPrice");
+        return value ? parseFloat(value.toString()) : undefined;
+      },
+    },
+    currentNetValue: {
+      type: DataTypes.DECIMAL(15, 4),
+      allowNull: true,
+      field: "current_net_value",
+      get() {
+        const value = this.getDataValue("currentNetValue");
+        return value ? parseFloat(value.toString()) : undefined;
       },
     },
   },

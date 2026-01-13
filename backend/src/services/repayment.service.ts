@@ -18,7 +18,6 @@ export interface CreateRepaymentParams {
   date: Date;
   note?: string;
   categoryId: number;
-  billTypeId: number;
 }
 
 // 还款结果接口
@@ -120,7 +119,6 @@ class RepaymentService {
       date,
       note,
       categoryId,
-      billTypeId,
     } = params;
 
     // 使用事务确保数据一致性
@@ -149,7 +147,6 @@ class RepaymentService {
           accountId: creditAccountId,
           sourceAccountId,
           categoryId,
-          billTypeId,
           type: "repayment",
           amount,
           date,

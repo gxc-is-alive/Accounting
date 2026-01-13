@@ -45,8 +45,12 @@ import {
   Folder,
   Document,
   More,
+  Postcard,
+  Promotion,
+  ChatDotRound,
 } from "@element-plus/icons-vue";
 import type { Component } from "vue";
+import type { Account, AccountType } from "@/types";
 
 // 图标映射表
 export const iconMap: Record<string, Component> = {
@@ -185,6 +189,45 @@ export function getIconComponent(
 ): Component {
   if (!iconName) return Folder;
   return iconMap[iconName] || Folder;
+}
+
+// 账户类型图标映射
+export const accountTypeIconMap: Record<AccountType, Component> = {
+  cash: Wallet,
+  bank: CreditCard,
+  alipay: Promotion,
+  wechat: ChatDotRound,
+  credit: Postcard,
+  investment: TrendCharts,
+  other: More,
+};
+
+/**
+ * 获取账户图标组件
+ * 优先使用账户自定义图标，否则使用账户类型默认图标
+ * @param account 账户对象
+ * @returns Element Plus 图标组件
+ */
+export function getAccountIcon(account: Account): Component {
+  // 优先使用自定义图标
+  if (account.icon && iconMap[account.icon]) {
+    return iconMap[account.icon];
+  }
+  // 使用账户类型默认图标
+  return accountTypeIconMap[account.type] || Wallet;
+}
+
+/**
+ * 获取账户图标名称
+ * 优先使用账户自定义图标名称，否则返回账户类型
+ * @param account 账户对象
+ * @returns 图标名称字符串
+ */
+export function getAccountIconName(account: Account): string {
+  if (account.icon) {
+    return account.icon;
+  }
+  return account.type;
 }
 
 export default iconMap;

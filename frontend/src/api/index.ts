@@ -6,7 +6,6 @@ import type {
   User,
   Account,
   Category,
-  BillType,
   Transaction,
   TransactionFilters,
   Family,
@@ -95,19 +94,6 @@ export const categoryApi = {
     request.put<ApiResponse<Category>>(`/categories/${id}`, data),
 
   delete: (id: number) => request.delete<ApiResponse>(`/categories/${id}`),
-};
-
-// 账单类型 API
-export const billTypeApi = {
-  list: () => request.get<ApiResponse<BillType[]>>("/bill-types"),
-
-  create: (data: Partial<BillType>) =>
-    request.post<ApiResponse<BillType>>("/bill-types", data),
-
-  update: (id: number, data: Partial<BillType>) =>
-    request.put<ApiResponse<BillType>>(`/bill-types/${id}`, data),
-
-  delete: (id: number) => request.delete<ApiResponse>(`/bill-types/${id}`),
 };
 
 // 交易记录 API
@@ -248,6 +234,17 @@ import type {
   Attachment,
   AttachmentUploadResponse,
   LinkAttachmentsRequest,
+  InvestmentSummary,
+  InvestmentAccountDetail,
+  InvestmentAccount,
+  InvestmentOverview,
+  CreateInvestmentAccountParams,
+  UpdateInvestmentAccountParams,
+  BuySharesParams,
+  SellSharesParams,
+  TradeResult,
+  UpdateNetValueParams,
+  BatchUpdateNetValueParams,
 } from "@/types";
 
 export const attachmentApi = {
@@ -299,4 +296,65 @@ export const attachmentApi = {
   // 关联附件到交易
   link: (data: LinkAttachmentsRequest) =>
     request.post<ApiResponse<{ success: boolean }>>("/attachments/link", data),
+};
+
+// ========== 投资 API ==========
+
+export const investmentApi = {
+  // 获取投资账户列表（含汇总）
+  list: () =>
+    request.get<ApiResponse<InvestmentSummary>>("/investment/accounts"),
+
+  // 获取投资概览统计
+  getSummary: () =>
+    request.get<ApiResponse<InvestmentOverview>>("/investment/summary"),
+
+  // 获取单个投资账户详情
+  getById: (id: number) =>
+    request.get<ApiResponse<InvestmentAccountDetail>>(
+      `/investment/accounts/${id}`
+    ),
+
+  // 创建投资账户
+  create: (data: CreateInvestmentAccountParams) =>
+    request.post<ApiResponse<InvestmentAccount>>("/investment/accounts", data),
+
+  // 更新投资账户
+  update: (id: number, data: UpdateInvestmentAccountParams) =>
+    request.put<ApiResponse<InvestmentAccount>>(
+      `/investment/accounts/${id}`,
+      data
+    ),
+
+  // 删除投资账户
+  delete: (id: number) =>
+    request.delete<ApiResponse>(`/investment/accounts/${id}`),
+
+  // 买入份额
+  buy: (id: number, data: BuySharesParams) =>
+    request.post<ApiResponse<TradeResult>>(
+      `/investment/accounts/${id}/buy`,
+      data
+    ),
+
+  // 卖出份额
+  sell: (id: number, data: SellSharesParams) =>
+    request.post<ApiResponse<TradeResult>>(
+      `/investment/accounts/${id}/sell`,
+      data
+    ),
+
+  // 更新净值
+  updateNetValue: (id: number, data: UpdateNetValueParams) =>
+    request.post<ApiResponse<InvestmentAccount>>(
+      `/investment/accounts/${id}/valuation`,
+      data
+    ),
+
+  // 批量更新净值
+  updateNetValueBatch: (data: BatchUpdateNetValueParams) =>
+    request.post<ApiResponse<InvestmentAccount[]>>(
+      "/investment/valuations/batch",
+      data
+    ),
 };

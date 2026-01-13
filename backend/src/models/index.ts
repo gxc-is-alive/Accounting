@@ -2,13 +2,13 @@ import User from "./User";
 import TokenBlacklist from "./TokenBlacklist";
 import Account from "./Account";
 import Category from "./Category";
-import BillType from "./BillType";
 import Transaction from "./Transaction";
 import Family from "./Family";
 import FamilyMember from "./FamilyMember";
 import FamilyInvite from "./FamilyInvite";
 import Budget from "./Budget";
 import Attachment from "./Attachment";
+import Valuation from "./Valuation";
 
 // 定义模型关联
 User.hasMany(Account, { foreignKey: "userId", as: "accounts" });
@@ -20,9 +20,6 @@ Category.belongsTo(User, { foreignKey: "userId", as: "user" });
 Category.hasMany(Category, { foreignKey: "parentId", as: "children" });
 Category.belongsTo(Category, { foreignKey: "parentId", as: "parent" });
 
-User.hasMany(BillType, { foreignKey: "userId", as: "billTypes" });
-BillType.belongsTo(User, { foreignKey: "userId", as: "user" });
-
 User.hasMany(Transaction, { foreignKey: "userId", as: "transactions" });
 Transaction.belongsTo(User, { foreignKey: "userId", as: "user" });
 
@@ -31,9 +28,6 @@ Transaction.belongsTo(Account, { foreignKey: "accountId", as: "account" });
 
 Category.hasMany(Transaction, { foreignKey: "categoryId", as: "transactions" });
 Transaction.belongsTo(Category, { foreignKey: "categoryId", as: "category" });
-
-BillType.hasMany(Transaction, { foreignKey: "billTypeId", as: "transactions" });
-Transaction.belongsTo(BillType, { foreignKey: "billTypeId", as: "billType" });
 
 User.hasMany(Family, { foreignKey: "createdBy", as: "createdFamilies" });
 Family.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
@@ -66,17 +60,21 @@ Attachment.belongsTo(Transaction, {
 User.hasMany(Attachment, { foreignKey: "userId", as: "attachments" });
 Attachment.belongsTo(User, { foreignKey: "userId", as: "user" });
 
+// 估值记录关联（投资追踪）
+Account.hasMany(Valuation, { foreignKey: "accountId", as: "valuations" });
+Valuation.belongsTo(Account, { foreignKey: "accountId", as: "account" });
+
 // 导出所有模型
 export {
   User,
   TokenBlacklist,
   Account,
   Category,
-  BillType,
   Transaction,
   Family,
   FamilyMember,
   FamilyInvite,
   Budget,
   Attachment,
+  Valuation,
 };

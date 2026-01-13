@@ -31,7 +31,6 @@ class RepaymentController {
         date,
         note,
         categoryId,
-        billTypeId,
       } = req.body;
 
       const result = await repaymentService.createRepayment({
@@ -42,7 +41,6 @@ class RepaymentController {
         date: new Date(date),
         note,
         categoryId,
-        billTypeId,
       });
 
       if (!result.success) {

@@ -7,7 +7,6 @@ import {
   User,
   Account,
   Category,
-  BillType,
   Transaction,
   Budget,
   Family,
@@ -25,7 +24,6 @@ export interface ExportData {
   user: UserExportData;
   accounts: AccountExportData[];
   categories: CategoryExportData[];
-  billTypes: BillTypeExportData[];
   transactions: TransactionExportData[];
   budgets: BudgetExportData[];
   family?: FamilyExportData;
@@ -54,20 +52,12 @@ export interface CategoryExportData {
   parentName?: string;
 }
 
-export interface BillTypeExportData {
-  name: string;
-  description: string;
-  icon: string;
-  isSystem: boolean;
-}
-
 export interface TransactionExportData {
   type: "income" | "expense" | "repayment";
   amount: number;
   date: string;
   accountName: string;
   categoryName: string;
-  billTypeName: string;
   note: string;
   isFamily: boolean;
 }
@@ -130,18 +120,6 @@ class ExportService {
     const categoryMap = new Map<number, Category>();
     categories.forEach((c) => categoryMap.set(c.id, c));
 
-    // 获取用户账单类型（包括系统类型）
-    const billTypes = await BillType.findAll({
-      where: {
-        [Op.or]: [{ userId }, { userId: null, isSystem: true }],
-      },
-      order: [["id", "ASC"]],
-    });
-
-    // 构建账单类型映射
-    const billTypeMap = new Map<number, BillType>();
-    billTypes.forEach((b) => billTypeMap.set(b.id, b));
-
     // 构建账户映射
     const accountMap = new Map<number, Account>();
     accounts.forEach((a) => accountMap.set(a.id, a));
@@ -190,14 +168,6 @@ class ExportService {
             parentName: parent?.name,
           };
         }),
-      billTypes: billTypes
-        .filter((b) => !b.isSystem || b.userId === userId)
-        .map((b) => ({
-          name: b.name,
-          description: b.description,
-          icon: b.icon,
-          isSystem: b.isSystem,
-        })),
       transactions: transactions.map((t) => ({
         type: t.type,
         amount: t.amount,
@@ -207,7 +177,6 @@ class ExportService {
             : String(t.date),
         accountName: accountMap.get(t.accountId)?.name || "",
         categoryName: categoryMap.get(t.categoryId)?.name || "",
-        billTypeName: billTypeMap.get(t.billTypeId)?.name || "",
         note: t.note,
         isFamily: t.isFamily,
       })),
@@ -225,8 +194,7 @@ class ExportService {
       const familyData = await this.exportFamilyData(
         userId,
         accountMap,
-        categoryMap,
-        billTypeMap
+        categoryMap
       );
       if (familyData) {
         exportData.family = familyData;
@@ -242,8 +210,7 @@ class ExportService {
   private async exportFamilyData(
     userId: number,
     accountMap: Map<number, Account>,
-    categoryMap: Map<number, Category>,
-    billTypeMap: Map<number, BillType>
+    categoryMap: Map<number, Category>
   ): Promise<FamilyExportData | null> {
     // 查找用户所属家庭
     const membership = await FamilyMember.findOne({
@@ -289,7 +256,6 @@ class ExportService {
             : String(t.date),
         accountName: accountMap.get(t.accountId)?.name || "",
         categoryName: categoryMap.get(t.categoryId)?.name || "",
-        billTypeName: billTypeMap.get(t.billTypeId)?.name || "",
         note: t.note,
         isFamily: t.isFamily,
       })),
@@ -322,7 +288,6 @@ class ExportService {
       include: [
         { model: Account, as: "account" },
         { model: Category, as: "category" },
-        { model: BillType, as: "billType" },
       ],
       order: [
         ["date", "DESC"],
@@ -332,15 +297,7 @@ class ExportService {
 
     // CSV 头部（UTF-8 BOM + 表头）
     const BOM = "\uFEFF";
-    const headers = [
-      "日期",
-      "类型",
-      "金额",
-      "分类",
-      "账户",
-      "账单类型",
-      "备注",
-    ];
+    const headers = ["日期", "类型", "金额", "分类", "账户", "备注"];
     const rows: string[] = [headers.join(",")];
 
     // 转换交易记录为 CSV 行
@@ -357,7 +314,6 @@ class ExportService {
         t.amount.toString(),
         this.escapeCsvField((t as any).category?.name || ""),
         this.escapeCsvField((t as any).account?.name || ""),
-        this.escapeCsvField((t as any).billType?.name || ""),
         this.escapeCsvField(t.note),
       ];
       rows.push(row.join(","));
@@ -410,10 +366,6 @@ class ExportService {
 
     if (!Array.isArray(d.categories)) {
       errors.push("缺少分类数据");
-    }
-
-    if (!Array.isArray(d.billTypes)) {
-      errors.push("缺少账单类型数据");
     }
 
     if (!Array.isArray(d.transactions)) {
@@ -487,18 +439,7 @@ class ExportService {
       result.failed += accountResult.failed;
       result.errors.push(...accountResult.errors);
 
-      // 3. 导入账单类型
-      const billTypeResult = await this.importBillTypes(
-        userId,
-        data.billTypes,
-        mode
-      );
-      result.success += billTypeResult.success;
-      result.skipped += billTypeResult.skipped;
-      result.failed += billTypeResult.failed;
-      result.errors.push(...billTypeResult.errors);
-
-      // 4. 导入交易记录
+      // 3. 导入交易记录
       const transactionResult = await this.importTransactions(
         userId,
         data.transactions
@@ -508,7 +449,7 @@ class ExportService {
       result.failed += transactionResult.failed;
       result.errors.push(...transactionResult.errors);
 
-      // 5. 导入预算
+      // 4. 导入预算
       const budgetResult = await this.importBudgets(userId, data.budgets, mode);
       result.success += budgetResult.success;
       result.skipped += budgetResult.skipped;
@@ -650,63 +591,6 @@ class ExportService {
   }
 
   /**
-   * 导入账单类型
-   */
-  private async importBillTypes(
-    userId: number,
-    billTypes: BillTypeExportData[],
-    mode: "skip" | "overwrite"
-  ): Promise<ImportResult> {
-    const result: ImportResult = {
-      success: 0,
-      skipped: 0,
-      failed: 0,
-      errors: [],
-    };
-
-    for (const bt of billTypes) {
-      if (bt.isSystem) {
-        result.skipped++;
-        continue;
-      }
-
-      try {
-        const existing = await BillType.findOne({
-          where: { userId, name: bt.name },
-        });
-
-        if (existing) {
-          if (mode === "overwrite") {
-            await existing.update({
-              description: bt.description,
-              icon: bt.icon,
-            });
-            result.success++;
-          } else {
-            result.skipped++;
-          }
-        } else {
-          await BillType.create({
-            userId,
-            name: bt.name,
-            description: bt.description,
-            icon: bt.icon,
-            isSystem: false,
-          });
-          result.success++;
-        }
-      } catch (error) {
-        result.failed++;
-        result.errors.push(
-          `账单类型 "${bt.name}" 导入失败: ${(error as Error).message}`
-        );
-      }
-    }
-
-    return result;
-  }
-
-  /**
    * 导入交易记录
    */
   private async importTransactions(
@@ -720,7 +604,7 @@ class ExportService {
       errors: [],
     };
 
-    // 获取用户的账户、分类、账单类型映射
+    // 获取用户的账户、分类映射
     const accounts = await Account.findAll({ where: { userId } });
     const accountMap = new Map<string, number>();
     accounts.forEach((a) => accountMap.set(a.name, a.id));
@@ -731,19 +615,12 @@ class ExportService {
     const categoryMap = new Map<string, number>();
     categories.forEach((c) => categoryMap.set(`${c.name}-${c.type}`, c.id));
 
-    const billTypes = await BillType.findAll({
-      where: { [Op.or]: [{ userId }, { userId: null, isSystem: true }] },
-    });
-    const billTypeMap = new Map<string, number>();
-    billTypes.forEach((b) => billTypeMap.set(b.name, b.id));
-
     for (const t of transactions) {
       try {
         const accountId = accountMap.get(t.accountName);
         const categoryId = categoryMap.get(
           `${t.categoryName}-${t.type === "repayment" ? "expense" : t.type}`
         );
-        const billTypeId = billTypeMap.get(t.billTypeName);
 
         if (!accountId) {
           result.failed++;
@@ -757,19 +634,10 @@ class ExportService {
           continue;
         }
 
-        if (!billTypeId) {
-          result.failed++;
-          result.errors.push(
-            `交易导入失败: 账单类型 "${t.billTypeName}" 不存在`
-          );
-          continue;
-        }
-
         await Transaction.create({
           userId,
           accountId,
           categoryId,
-          billTypeId,
           type: t.type,
           amount: t.amount,
           date: new Date(t.date),

@@ -11,7 +11,6 @@ export interface TransactionAttributes {
   familyId: number | null;
   accountId: number;
   categoryId: number;
-  billTypeId: number;
   type: TransactionType;
   amount: number;
   date: Date;
@@ -45,7 +44,6 @@ class Transaction
   public familyId!: number | null;
   public accountId!: number;
   public categoryId!: number;
-  public billTypeId!: number;
   public type!: TransactionType;
   public amount!: number;
   public date!: Date;
@@ -83,11 +81,6 @@ Transaction.init(
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
       field: "category_id",
-    },
-    billTypeId: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      allowNull: false,
-      field: "bill_type_id",
     },
     type: {
       type: DataTypes.ENUM("income", "expense", "repayment"),
