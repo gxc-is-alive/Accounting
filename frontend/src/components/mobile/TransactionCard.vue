@@ -11,6 +11,8 @@
         <div class="transaction-card__main">
           <span class="transaction-card__category">
             {{ transaction.category?.name || '未分类' }}
+            <!-- 附件图标 -->
+            <span v-if="hasAttachments" class="transaction-card__attachment-icon" title="有附件">📎</span>
           </span>
           <span
             class="transaction-card__amount"
@@ -38,10 +40,12 @@ import type { SwipeActionItem } from './SwipeAction.vue'
 interface Props {
   transaction: Transaction
   showActions?: boolean
+  hasAttachments?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  showActions: true
+  showActions: true,
+  hasAttachments: false
 })
 
 const emit = defineEmits<{
@@ -169,5 +173,10 @@ const formatDate = (date: string) => {
   font-size: 12px;
   color: var(--text-secondary);
   flex-shrink: 0;
+}
+
+.transaction-card__attachment-icon {
+  margin-left: 4px;
+  font-size: 12px;
 }
 </style>

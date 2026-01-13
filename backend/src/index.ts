@@ -14,6 +14,7 @@ import budgetRoutes from "./routes/budget.routes";
 import aiRoutes from "./routes/ai.routes";
 import repaymentRoutes from "./routes/repayment.routes";
 import exportRoutes from "./routes/export.routes";
+import attachmentRoutes from "./routes/attachment.routes";
 
 // 创建 Express 应用
 const app: Application = express();
@@ -40,6 +41,10 @@ app.use("/api/budgets", budgetRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/repayments", repaymentRoutes);
 app.use("/api/export", exportRoutes);
+app.use("/api/attachments", attachmentRoutes);
+
+// 静态文件服务 - 用于访问上传的附件
+app.use("/uploads", express.static("uploads"));
 // app.use('/api/categories', categoryRoutes);
 // app.use('/api/bill-types', billTypeRoutes);
 // app.use('/api/transactions', transactionRoutes);

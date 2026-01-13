@@ -102,8 +102,10 @@
           <el-form-item label="备注">
             <el-input v-model="form.note" placeholder="添加备注（可选）" />
           </el-form-item>
-          <el-form-item label="家庭账目">
-            <el-switch v-model="form.isFamily" />
+          
+          <!-- 附件上传 -->
+          <el-form-item label="附件">
+            <AttachmentUpload v-model="attachments" :max-count="5" />
           </el-form-item>
         </el-form>
       </div>
@@ -142,8 +144,9 @@ import { useCategoryStore } from '@/stores/category';
 import { useTransactionStore } from '@/stores/transaction';
 import { useDevice } from '@/composables/useDevice';
 import { getIconComponent } from '@/utils/iconMap';
-import { aiApi } from '@/api';
-import type { TransactionType } from '@/types';
+import { aiApi, attachmentApi } from '@/api';
+import type { TransactionType, Attachment } from '@/types';
+import AttachmentUpload from '@/components/attachment/AttachmentUpload.vue';
 
 const router = useRouter();
 const { device } = useDevice();
@@ -169,13 +172,13 @@ const form = reactive({
   billTypeId: null as number | null,
   date: new Date().toISOString().split('T')[0],
   note: '',
-  isFamily: false,
 });
 
 const aiText = ref('');
 const aiLoading = ref(false);
 const submitting = ref(false);
 const showSuccess = ref(false);
+const attachments = ref<Attachment[]>([]);
 
 // 处理金额输入（只允许数字和小数点）
 const handleAmountInput = (e: Event) => {
@@ -246,7 +249,7 @@ const handleSubmit = async () => {
 
   submitting.value = true;
   try {
-    await transactionStore.createTransaction({
+    const transaction = await transactionStore.createTransaction({
       type: form.type,
       amount: parseFloat(form.amount),
       categoryId: form.categoryId,
@@ -254,8 +257,19 @@ const handleSubmit = async () => {
       billTypeId: form.billTypeId,
       date: form.date,
       note: form.note,
-      isFamily: form.isFamily,
     });
+    
+    // 关联附件到交易
+    if (attachments.value.length > 0 && transaction) {
+      try {
+        await attachmentApi.link({
+          attachmentIds: attachments.value.map(a => a.id),
+          transactionId: transaction.id,
+        });
+      } catch (e) {
+        console.error('关联附件失败:', e);
+      }
+    }
     
     // 显示成功动画
     if (isMobile.value) {
@@ -271,6 +285,7 @@ const handleSubmit = async () => {
       form.categoryId = null;
       form.note = '';
       aiText.value = '';
+      attachments.value = [];
     }
   } catch (error: unknown) {
     const err = error as { message?: string };

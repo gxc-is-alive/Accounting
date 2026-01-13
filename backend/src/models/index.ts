@@ -8,6 +8,7 @@ import Family from "./Family";
 import FamilyMember from "./FamilyMember";
 import FamilyInvite from "./FamilyInvite";
 import Budget from "./Budget";
+import Attachment from "./Attachment";
 
 // 定义模型关联
 User.hasMany(Account, { foreignKey: "userId", as: "accounts" });
@@ -53,6 +54,18 @@ Budget.belongsTo(User, { foreignKey: "userId", as: "user" });
 Category.hasMany(Budget, { foreignKey: "categoryId", as: "budgets" });
 Budget.belongsTo(Category, { foreignKey: "categoryId", as: "category" });
 
+// 附件关联
+Transaction.hasMany(Attachment, {
+  foreignKey: "transactionId",
+  as: "attachments",
+});
+Attachment.belongsTo(Transaction, {
+  foreignKey: "transactionId",
+  as: "transaction",
+});
+User.hasMany(Attachment, { foreignKey: "userId", as: "attachments" });
+Attachment.belongsTo(User, { foreignKey: "userId", as: "user" });
+
 // 导出所有模型
 export {
   User,
@@ -65,4 +78,5 @@ export {
   FamilyMember,
   FamilyInvite,
   Budget,
+  Attachment,
 };

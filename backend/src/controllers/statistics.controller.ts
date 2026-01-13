@@ -119,6 +119,74 @@ class StatisticsController {
       next(err);
     }
   }
+
+  // ========== 家庭账单优化：新增 API ==========
+
+  // 获取家庭概览统计
+  async getFamilyOverview(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        throw new AppError("未授权", 401, ErrorCode.UNAUTHORIZED);
+      }
+
+      const { id } = req.params;
+      const { year, month } = req.query;
+      const now = new Date();
+
+      const stats = await statisticsService.getFamilyOverview(
+        req.user.id,
+        parseInt(id, 10),
+        year ? parseInt(year as string, 10) : now.getFullYear(),
+        month ? parseInt(month as string, 10) : now.getMonth() + 1
+      );
+
+      return success(res, stats);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  // 获取家庭总资产
+  async getFamilyAssets(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        throw new AppError("未授权", 401, ErrorCode.UNAUTHORIZED);
+      }
+
+      const { id } = req.params;
+
+      const assets = await statisticsService.getFamilyTotalAssets(
+        req.user.id,
+        parseInt(id, 10)
+      );
+
+      return success(res, assets);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  // 获取家庭年度统计
+  async getFamilyYearly(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        throw new AppError("未授权", 401, ErrorCode.UNAUTHORIZED);
+      }
+
+      const { id } = req.params;
+      const { year } = req.query;
+
+      const stats = await statisticsService.getFamilyYearlyStats(
+        req.user.id,
+        parseInt(id, 10),
+        year ? parseInt(year as string, 10) : new Date().getFullYear()
+      );
+
+      return success(res, stats);
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export default new StatisticsController();

@@ -252,3 +252,161 @@ export interface DueReminder {
   daysUntilDue: number;
   isOverdue: boolean;
 }
+
+// ========== 家庭账单优化：新增类型 ==========
+
+// 成员贡献统计
+export interface MemberContribution {
+  userId: number;
+  nickname: string;
+  income: number;
+  expense: number;
+  incomePercentage: number;
+  expensePercentage: number;
+}
+
+// 家庭概览统计
+export interface FamilyOverview {
+  familyId: number;
+  familyName: string;
+  period: {
+    year: number;
+    month: number;
+  };
+  totalIncome: number;
+  totalExpense: number;
+  balance: number;
+  totalAssets: number;
+  memberCount: number;
+  memberContributions: MemberContribution[];
+}
+
+// 家庭资产统计
+export interface FamilyAssets {
+  familyId: number;
+  totalAssets: number;
+  byAccountType: Array<{
+    type: string;
+    typeName: string;
+    total: number;
+  }>;
+  byMember: Array<{
+    userId: number;
+    nickname: string;
+    accounts: Array<{
+      id: number;
+      name: string;
+      type: string;
+      balance: number;
+    }>;
+    totalBalance: number;
+  }>;
+}
+
+// 家庭年度统计
+export interface FamilyYearlyStats {
+  familyId: number;
+  familyName: string;
+  year: number;
+  totalIncome: number;
+  totalExpense: number;
+  totalBalance: number;
+  monthlyTrend: Array<{
+    month: number;
+    label: string;
+    income: number;
+    expense: number;
+    balance: number;
+  }>;
+  categoryBreakdown: Array<{
+    categoryId: number;
+    categoryName: string;
+    categoryIcon: string;
+    amount: number;
+    percentage: number;
+  }>;
+  memberContributions: MemberContribution[];
+}
+
+// 家庭交易记录
+export interface FamilyTransaction {
+  id: number;
+  userId: number;
+  userNickname: string;
+  amount: number;
+  type: TransactionType;
+  categoryId: number;
+  categoryName: string;
+  categoryIcon: string;
+  accountId: number;
+  accountName: string;
+  date: string;
+  note?: string;
+  createdAt: string;
+}
+
+// 家庭交易筛选参数
+export interface FamilyTransactionFilters {
+  memberId?: number;
+  categoryId?: number;
+  billTypeId?: number;
+  type?: TransactionType;
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+// ========== 附件相关类型 ==========
+
+// 附件类型
+export interface Attachment {
+  id: number;
+  transactionId?: number;
+  filename: string;
+  mimeType: string;
+  size: number;
+  url: string;
+  thumbnailUrl?: string;
+  createdAt: string;
+}
+
+// 上传响应
+export interface AttachmentUploadResponse {
+  id: number;
+  filename: string;
+  mimeType: string;
+  size: number;
+  url: string;
+  thumbnailUrl?: string;
+  createdAt: string;
+}
+
+// 附件关联请求
+export interface LinkAttachmentsRequest {
+  attachmentIds: number[];
+  transactionId: number;
+}
+
+// 文件验证结果
+export interface FileValidationResult {
+  valid: boolean;
+  error?: string;
+}
+
+// 支持的文件类型
+export const ALLOWED_MIME_TYPES = {
+  image: ["image/jpeg", "image/png", "image/gif", "image/webp"],
+  pdf: ["application/pdf"],
+  video: ["video/mp4", "video/quicktime"],
+};
+
+// 文件大小限制（字节）
+export const FILE_SIZE_LIMITS = {
+  image: 10 * 1024 * 1024, // 10MB
+  pdf: 10 * 1024 * 1024, // 10MB
+  video: 50 * 1024 * 1024, // 50MB
+};
+
+// 最大附件数量
+export const MAX_ATTACHMENTS = 5;

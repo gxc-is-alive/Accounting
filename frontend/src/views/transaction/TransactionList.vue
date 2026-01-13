@@ -121,6 +121,22 @@
               <span class="detail-label">备注</span>
               <span class="detail-value">{{ selectedTransaction.note || '-' }}</span>
             </div>
+            <!-- 附件列表 -->
+            <div class="detail-item detail-item--attachments" v-if="selectedTransaction.attachmentCount && selectedTransaction.attachmentCount > 0">
+              <span class="detail-label">附件 ({{ selectedTransaction.attachmentCount }})</span>
+              <div class="detail-attachments">
+                <div v-if="loadingAttachments" class="attachments-loading">
+                  <el-icon class="is-loading"><Loading /></el-icon>
+                  加载中...
+                </div>
+                <AttachmentList
+                  v-else-if="selectedAttachments.length > 0"
+                  :attachments="selectedAttachments"
+                  :readonly="true"
+                />
+                <span v-else class="no-attachments">暂无附件</span>
+              </div>
+            </div>
           </div>
         </div>
         <template #footer>
@@ -259,6 +275,13 @@
         <el-form-item label="备注">
           <el-input v-model="editForm.note" />
         </el-form-item>
+        <el-form-item label="附件">
+          <div v-if="loadingEditAttachments" class="attachments-loading">
+            <el-icon class="is-loading"><Loading /></el-icon>
+            加载中...
+          </div>
+          <AttachmentUpload v-else v-model="editAttachments" :max-count="5" />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="editDialogVisible = false">取消</el-button>
@@ -273,14 +296,17 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Plus, Filter } from '@element-plus/icons-vue';
+import { Plus, Filter, Loading } from '@element-plus/icons-vue';
 import { useTransactionStore } from '@/stores/transaction';
 import { useCategoryStore } from '@/stores/category';
 import { useDevice } from '@/composables/useDevice';
 import PullRefresh from '@/components/mobile/PullRefresh.vue';
 import BottomSheet from '@/components/mobile/BottomSheet.vue';
 import TransactionCard from '@/components/mobile/TransactionCard.vue';
-import type { Transaction, TransactionFilters } from '@/types';
+import AttachmentList from '@/components/attachment/AttachmentList.vue';
+import AttachmentUpload from '@/components/attachment/AttachmentUpload.vue';
+import { attachmentApi } from '@/api';
+import type { Transaction, TransactionFilters, Attachment } from '@/types';
 
 const { device } = useDevice();
 const isMobile = computed(() => device.value.isMobile);
@@ -304,6 +330,8 @@ const loadingMore = ref(false);
 const showFilterSheet = ref(false);
 const showDetailSheet = ref(false);
 const selectedTransaction = ref<Transaction | null>(null);
+const selectedAttachments = ref<Attachment[]>([]);
+const loadingAttachments = ref(false);
 
 const hasFilters = computed(() => {
   return dateRange.value || filters.type || filters.categoryId;
@@ -321,6 +349,8 @@ const editForm = reactive({
   date: '',
   note: '',
 });
+const editAttachments = ref<Attachment[]>([]);
+const loadingEditAttachments = ref(false);
 const submitting = ref(false);
 
 // 下拉刷新
@@ -348,9 +378,23 @@ const loadMore = async () => {
 };
 
 // 点击卡片显示详情
-const handleCardClick = (transaction: Transaction) => {
+const handleCardClick = async (transaction: Transaction) => {
   selectedTransaction.value = transaction;
+  selectedAttachments.value = [];
   showDetailSheet.value = true;
+  
+  // 加载附件列表
+  if (transaction.attachmentCount && transaction.attachmentCount > 0) {
+    loadingAttachments.value = true;
+    try {
+      const attachments = await attachmentApi.listByTransaction(transaction.id);
+      selectedAttachments.value = attachments;
+    } catch (error) {
+      console.error('加载附件失败:', error);
+    } finally {
+      loadingAttachments.value = false;
+    }
+  }
 };
 
 // 应用筛选
@@ -388,14 +432,28 @@ const handlePageChange = (newPage: number) => {
 };
 
 // 编辑
-const handleEdit = (row: Transaction) => {
+const handleEdit = async (row: Transaction) => {
   showDetailSheet.value = false;
   editForm.id = row.id;
   editForm.amount = row.amount;
   editForm.categoryId = row.categoryId;
   editForm.date = row.date;
   editForm.note = row.note || '';
+  editAttachments.value = [];
   editDialogVisible.value = true;
+  
+  // 加载已有附件
+  if (row.attachmentCount && row.attachmentCount > 0) {
+    loadingEditAttachments.value = true;
+    try {
+      const attachments = await attachmentApi.listByTransaction(row.id);
+      editAttachments.value = attachments;
+    } catch (error) {
+      console.error('加载附件失败:', error);
+    } finally {
+      loadingEditAttachments.value = false;
+    }
+  }
 };
 
 // 提交编辑
@@ -558,6 +616,31 @@ onMounted(async () => {
 
 .detail-actions .el-button {
   flex: 1;
+}
+
+/* 附件列表样式 */
+.detail-item--attachments {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+}
+
+.detail-attachments {
+  width: 100%;
+  margin-top: var(--spacing-xs);
+}
+
+.attachments-loading {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.no-attachments {
+  color: var(--text-secondary);
+  font-size: 14px;
 }
 
 /* 桌面端样式 */

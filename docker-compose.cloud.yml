@@ -1,11 +1,11 @@
-# Docker Compose 配置 - 家庭记账系统
-# Feature: data-export-docker
-# 使用方法: docker-compose up -d
+# Docker Compose 云服务器部署配置
+# 使用阿里云镜像仓库的预构建镜像
+# 使用方法: docker-compose -f docker-compose.cloud.yml up -d
 
 services:
   # MySQL 数据库服务
   mysql:
-    image: docker.m.daocloud.io/mysql:8.0
+    image: mysql:8.0
     container_name: family-accounting-mysql
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --init-connect='SET NAMES utf8mb4'
     environment:
@@ -15,10 +15,8 @@ services:
       MYSQL_PASSWORD: ${DB_PASSWORD:-accounting123}
       LANG: C.UTF-8
     volumes:
-      # 数据持久化 - 使用命名卷确保重启后数据不丢失
       - mysql_data:/var/lib/mysql
-      # 数据库初始化脚本
-      - ./backend/src/scripts/initDb.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./initDb.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
       - "${DB_PORT:-3306}:3306"
     healthcheck:
@@ -40,12 +38,15 @@ services:
     restart: unless-stopped
     networks:
       - app-network
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
 
-  # 后端 API 服务
+  # 后端 API 服务 - 使用阿里云镜像
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: crpi-1jw9hqpudq1gxjjv.cn-shanghai.personal.cr.aliyuncs.com/family-accounting/backend:latest
     container_name: family-accounting-backend
     environment:
       - NODE_ENV=production
@@ -59,6 +60,8 @@ services:
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
       - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com/v1}
+    volumes:
+      - uploads_data:/app/uploads
     ports:
       - "${BACKEND_PORT:-3000}:3000"
     depends_on:
@@ -67,14 +70,15 @@ services:
     restart: unless-stopped
     networks:
       - app-network
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
 
-  # 前端 Web 服务
+  # 前端 Web 服务 - 使用阿里云镜像
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        - VITE_API_BASE_URL=/api
+    image: crpi-1jw9hqpudq1gxjjv.cn-shanghai.personal.cr.aliyuncs.com/family-accounting/frontend:latest
     container_name: family-accounting-frontend
     ports:
       - "${FRONTEND_PORT:-3000}:80"
@@ -83,13 +87,18 @@ services:
     restart: unless-stopped
     networks:
       - app-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
 
-# 命名卷 - 确保数据持久化
 volumes:
   mysql_data:
     name: family-accounting-mysql-data
+  uploads_data:
+    name: family-accounting-uploads
 
-# 网络配置
 networks:
   app-network:
     driver: bridge

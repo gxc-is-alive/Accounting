@@ -79,4 +79,43 @@ router.get(
   statisticsController.getFamily
 );
 
+// ========== 家庭账单优化：新增路由 ==========
+
+// 获取家庭概览统计
+router.get(
+  "/family/:id/overview",
+  [
+    param("id").isInt({ min: 1 }).withMessage("无效的家庭ID"),
+    query("year")
+      .optional()
+      .isInt({ min: 2000, max: 2100 })
+      .withMessage("无效的年份"),
+    query("month")
+      .optional()
+      .isInt({ min: 1, max: 12 })
+      .withMessage("无效的月份"),
+  ],
+  statisticsController.getFamilyOverview
+);
+
+// 获取家庭总资产
+router.get(
+  "/family/:id/assets",
+  [param("id").isInt({ min: 1 }).withMessage("无效的家庭ID")],
+  statisticsController.getFamilyAssets
+);
+
+// 获取家庭年度统计
+router.get(
+  "/family/:id/yearly",
+  [
+    param("id").isInt({ min: 1 }).withMessage("无效的家庭ID"),
+    query("year")
+      .optional()
+      .isInt({ min: 2000, max: 2100 })
+      .withMessage("无效的年份"),
+  ],
+  statisticsController.getFamilyYearly
+);
+
 export default router;

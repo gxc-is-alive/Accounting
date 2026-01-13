@@ -24,6 +24,11 @@ import type {
   CreateRepaymentParams,
   RepaymentResult,
   DueReminder,
+  FamilyOverview,
+  FamilyAssets,
+  FamilyYearlyStats,
+  FamilyTransaction,
+  FamilyTransactionFilters,
 } from "@/types";
 
 // 认证 API
@@ -122,6 +127,15 @@ export const transactionApi = {
 
   quickAdd: (text: string) =>
     request.post<ApiResponse<Transaction>>("/transactions/quick", { text }),
+
+  // ========== 家庭账单优化：新增 API ==========
+
+  // 获取家庭交易列表（基于成员加入时间）
+  familyList: (familyId: number, params?: FamilyTransactionFilters) =>
+    request.get<ApiResponse<PaginatedResponse<FamilyTransaction>>>(
+      `/transactions/family/${familyId}`,
+      { params }
+    ),
 };
 
 // 家庭 API
@@ -191,6 +205,30 @@ export const statisticsApi = {
       { params: { year, month: m } }
     );
   },
+
+  // ========== 家庭账单优化：新增 API ==========
+
+  // 获取家庭概览统计
+  familyOverview: (familyId: number, month: string) => {
+    const [year, m] = month.split("-");
+    return request.get<ApiResponse<FamilyOverview>>(
+      `/statistics/family/${familyId}/overview`,
+      { params: { year, month: m } }
+    );
+  },
+
+  // 获取家庭总资产
+  familyAssets: (familyId: number) =>
+    request.get<ApiResponse<FamilyAssets>>(
+      `/statistics/family/${familyId}/assets`
+    ),
+
+  // 获取家庭年度统计
+  familyYearly: (familyId: number, year: number) =>
+    request.get<ApiResponse<FamilyYearlyStats>>(
+      `/statistics/family/${familyId}/yearly`,
+      { params: { year } }
+    ),
 };
 
 // AI API
@@ -203,4 +241,62 @@ export const aiApi = {
 
   chat: (question: string) =>
     request.post<ApiResponse<{ answer: string }>>("/ai/chat", { question }),
+};
+
+// ========== 附件 API ==========
+import type {
+  Attachment,
+  AttachmentUploadResponse,
+  LinkAttachmentsRequest,
+} from "@/types";
+
+export const attachmentApi = {
+  // 上传单个附件
+  upload: (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request.post<ApiResponse<AttachmentUploadResponse>>(
+      "/attachments/upload",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+  },
+
+  // 批量上传附件
+  uploadMultiple: (files: File[]) => {
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append("files", file);
+    });
+    return request.post<ApiResponse<AttachmentUploadResponse[]>>(
+      "/attachments/upload-multiple",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+  },
+
+  // 获取单个附件
+  get: (id: number) =>
+    request.get<ApiResponse<Attachment>>(`/attachments/${id}`),
+
+  // 获取交易的所有附件
+  getByTransaction: (transactionId: number) =>
+    request.get<ApiResponse<Attachment[]>>(
+      `/attachments/transaction/${transactionId}`
+    ),
+
+  // 删除附件
+  delete: (id: number) => request.delete<ApiResponse>(`/attachments/${id}`),
+
+  // 关联附件到交易
+  link: (data: LinkAttachmentsRequest) =>
+    request.post<ApiResponse<{ success: boolean }>>("/attachments/link", data),
 };

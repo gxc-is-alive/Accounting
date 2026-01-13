@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS families (
     name VARCHAR(100) NOT NULL,
     created_by INT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES users(id)
 );
 
@@ -59,6 +60,9 @@ CREATE TABLE IF NOT EXISTS accounts (
     type ENUM('cash', 'bank', 'alipay', 'wechat', 'credit', 'other') NOT NULL,
     balance DECIMAL(15, 2) DEFAULT 0,
     icon VARCHAR(50),
+    credit_limit DECIMAL(15, 2),
+    billing_day TINYINT,
+    due_day TINYINT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -107,11 +111,12 @@ CREATE TABLE IF NOT EXISTS transactions (
     account_id INT NOT NULL,
     category_id INT NOT NULL,
     bill_type_id INT NOT NULL,
-    type ENUM('income', 'expense') NOT NULL,
+    type ENUM('income', 'expense', 'repayment') NOT NULL,
     amount DECIMAL(15, 2) NOT NULL,
     date DATE NOT NULL,
     note VARCHAR(500),
     is_family BOOLEAN DEFAULT FALSE,
+    source_account_id INT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -119,6 +124,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     FOREIGN KEY (account_id) REFERENCES accounts(id),
     FOREIGN KEY (category_id) REFERENCES categories(id),
     FOREIGN KEY (bill_type_id) REFERENCES bill_types(id),
+    FOREIGN KEY (source_account_id) REFERENCES accounts(id),
     INDEX idx_user_date (user_id, date),
     INDEX idx_family_date (family_id, date)
 );
@@ -131,6 +137,7 @@ CREATE TABLE IF NOT EXISTS budgets (
     amount DECIMAL(15, 2) NOT NULL,
     month VARCHAR(7) NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
     UNIQUE KEY unique_user_category_month (user_id, category_id, month)

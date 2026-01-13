@@ -36,6 +36,14 @@
         </div>
       </div>
 
+      <!-- 家庭概览 -->
+      <FamilyOverviewCard
+        v-if="hasFamilies"
+        ref="familyOverviewRef"
+        class="page-card"
+        @view-detail="goToFamilyReport"
+      />
+
       <!-- 最近交易 -->
       <div class="page-card">
         <h3 class="page-title">最近交易</h3>
@@ -119,24 +127,34 @@
     </div>
 
     <div class="content-grid">
-      <div class="page-card transactions-card">
-        <h3 class="page-title">最近交易</h3>
-        <el-empty v-if="!recentTransactions.length" description="暂无交易记录" />
-        <div v-else class="transaction-list">
-          <div
-            v-for="item in recentTransactions"
-            :key="item.id"
-            class="transaction-item"
-          >
-            <div class="transaction-info">
-              <span class="transaction-category">{{ item.category?.name || '未分类' }}</span>
-              <span class="transaction-note">{{ item.note || '-' }}</span>
-            </div>
+      <div class="main-content">
+        <!-- 家庭概览 -->
+        <FamilyOverviewCard
+          v-if="hasFamilies"
+          ref="familyOverviewRef"
+          class="page-card family-card"
+          @view-detail="goToFamilyReport"
+        />
+
+        <div class="page-card transactions-card">
+          <h3 class="page-title">最近交易</h3>
+          <el-empty v-if="!recentTransactions.length" description="暂无交易记录" />
+          <div v-else class="transaction-list">
             <div
-              class="transaction-amount"
-              :class="item.type === 'income' ? 'amount-income' : 'amount-expense'"
+              v-for="item in recentTransactions"
+              :key="item.id"
+              class="transaction-item"
             >
-              {{ item.type === 'income' ? '+' : '-' }}¥{{ formatAmount(item.amount) }}
+              <div class="transaction-info">
+                <span class="transaction-category">{{ item.category?.name || '未分类' }}</span>
+                <span class="transaction-note">{{ item.note || '-' }}</span>
+              </div>
+              <div
+                class="transaction-amount"
+                :class="item.type === 'income' ? 'amount-income' : 'amount-expense'"
+              >
+                {{ item.type === 'income' ? '+' : '-' }}¥{{ formatAmount(item.amount) }}
+              </div>
             </div>
           </div>
         </div>
@@ -166,17 +184,21 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
+import { useRouter } from 'vue-router';
 import { TrendCharts, Goods, Wallet } from '@element-plus/icons-vue';
-import type { Transaction, Budget, MonthlyStatistics } from '@/types';
-import { statisticsApi, transactionApi, budgetApi } from '@/api';
+import type { Transaction, Budget, MonthlyStatistics, Family } from '@/types';
+import { statisticsApi, transactionApi, budgetApi, familyApi } from '@/api';
 import { useDevice } from '@/composables/useDevice';
 import PullRefresh from '@/components/mobile/PullRefresh.vue';
 import RepaymentReminder from '@/components/credit/RepaymentReminder.vue';
+import FamilyOverviewCard from '@/components/family/FamilyOverviewCard.vue';
 
+const router = useRouter();
 const { device } = useDevice();
 const isMobile = computed(() => device.value.isMobile);
 
 const reminderRef = ref<InstanceType<typeof RepaymentReminder>>();
+const familyOverviewRef = ref<InstanceType<typeof FamilyOverviewCard>>();
 
 const statistics = ref<MonthlyStatistics>({
   month: '',
@@ -189,6 +211,7 @@ const statistics = ref<MonthlyStatistics>({
 const recentTransactions = ref<Transaction[]>([]);
 const budgets = ref<Budget[]>([]);
 const refreshing = ref(false);
+const hasFamilies = ref(false);
 
 const formatAmount = (amount: number) => {
   return (amount || 0).toFixed(2);
@@ -233,11 +256,28 @@ const loadBudgets = async () => {
   }
 };
 
+const checkFamilies = async () => {
+  try {
+    const res = await familyApi.list() as unknown as { success: boolean; data: Family[] };
+    if (res.success && res.data) {
+      hasFamilies.value = res.data.length > 0;
+    }
+  } catch (error) {
+    console.error('检查家庭失败:', error);
+    hasFamilies.value = false;
+  }
+};
+
+const goToFamilyReport = () => {
+  router.push('/family/report');
+};
+
 const loadAllData = async () => {
   await Promise.all([
     loadStatistics(),
     loadRecentTransactions(),
     loadBudgets(),
+    checkFamilies(),
   ]);
 };
 
@@ -247,6 +287,7 @@ const onRefresh = async () => {
   try {
     await loadAllData();
     reminderRef.value?.refresh();
+    familyOverviewRef.value?.refresh();
   } finally {
     refreshing.value = false;
   }
@@ -462,6 +503,12 @@ onMounted(async () => {
   gap: 20px;
 }
 
+.main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 .sidebar-cards {
   display: flex;
   flex-direction: column;
@@ -474,5 +521,9 @@ onMounted(async () => {
 
 .budget-card {
   min-height: 200px;
+}
+
+.family-card {
+  margin-bottom: 0;
 }
 </style>

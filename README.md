@@ -46,8 +46,20 @@ docker-compose logs -f
 
 启动后访问：
 
-- 前端: http://localhost
-- 后端 API: http://localhost:3000
+- 前端: http://localhost:3000
+- 后端 API: http://localhost:3000/api
+
+**更新系统（数据不丢失）：**
+
+```bash
+# 停止并删除容器（数据卷会保留）
+docker-compose down
+
+# 拉取最新代码后重新构建启动
+docker-compose up -d --build
+```
+
+**注意**：使用 `docker-compose down` 而不是 `docker rm`，这样命名卷 `family-accounting-mysql-data` 会保留，数据不会丢失。
 
 生产环境部署（带资源限制）：
 

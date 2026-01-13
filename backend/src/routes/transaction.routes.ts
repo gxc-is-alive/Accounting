@@ -95,4 +95,35 @@ router.delete(
   transactionController.delete
 );
 
+// ========== 家庭账单优化：新增路由 ==========
+
+// 获取家庭账单列表（基于成员加入时间）
+router.get(
+  "/family/:familyId",
+  [
+    param("familyId").isInt({ min: 1 }).withMessage("无效的家庭ID"),
+    query("memberId").optional().isInt({ min: 1 }).withMessage("无效的成员ID"),
+    query("categoryId")
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage("无效的分类ID"),
+    query("billTypeId")
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage("无效的账单类型ID"),
+    query("type")
+      .optional()
+      .isIn(["income", "expense"])
+      .withMessage("无效的交易类型"),
+    query("startDate").optional().isISO8601().withMessage("无效的开始日期"),
+    query("endDate").optional().isISO8601().withMessage("无效的结束日期"),
+    query("page").optional().isInt({ min: 1 }).withMessage("页码必须是正整数"),
+    query("pageSize")
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage("每页数量必须在1-100之间"),
+  ],
+  transactionController.listFamilyTransactions
+);
+
 export default router;

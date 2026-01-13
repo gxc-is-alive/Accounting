@@ -198,6 +198,60 @@ class TransactionController {
       next(err);
     }
   }
+
+  // ========== 家庭账单优化：新增 API ==========
+
+  // 获取家庭账单列表（基于成员加入时间）
+  async listFamilyTransactions(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      if (!req.user) {
+        throw new AppError("未授权", 401, ErrorCode.UNAUTHORIZED);
+      }
+
+      const { familyId } = req.params;
+      const {
+        memberId,
+        categoryId,
+        billTypeId,
+        type,
+        startDate,
+        endDate,
+        page,
+        pageSize,
+      } = req.query;
+
+      // 使用统计服务的家庭交易查询方法
+      const statisticsService = (await import("../services/statistics.service"))
+        .default;
+
+      const result = await statisticsService.getFamilyMemberTransactions(
+        req.user.id,
+        parseInt(familyId, 10),
+        {
+          memberId: memberId ? parseInt(memberId as string, 10) : undefined,
+          categoryId: categoryId
+            ? parseInt(categoryId as string, 10)
+            : undefined,
+          billTypeId: billTypeId
+            ? parseInt(billTypeId as string, 10)
+            : undefined,
+          type: type as "income" | "expense" | undefined,
+          startDate: startDate as string | undefined,
+          endDate: endDate as string | undefined,
+          page: page ? parseInt(page as string, 10) : 1,
+          pageSize: pageSize ? parseInt(pageSize as string, 10) : 20,
+        }
+      );
+
+      return success(res, result);
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export default new TransactionController();

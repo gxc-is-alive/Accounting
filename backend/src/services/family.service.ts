@@ -12,38 +12,48 @@ class FamilyService {
 
   // 获取用户的家庭列表
   async getUserFamilies(userId: number) {
-    const memberships = await FamilyMember.findAll({
-      where: { userId },
-      include: [
-        {
-          model: Family,
-          as: "family",
-          include: [
-            {
-              model: FamilyMember,
-              as: "members",
-              include: [
-                {
-                  model: User,
-                  as: "user",
-                  attributes: ["id", "nickname", "email"],
-                },
-              ],
-            },
-            {
-              model: User,
-              as: "creator",
-              attributes: ["id", "nickname"],
-            },
-          ],
-        },
-      ],
-    });
+    try {
+      const memberships = await FamilyMember.findAll({
+        where: { userId },
+        include: [
+          {
+            model: Family,
+            as: "family",
+          },
+        ],
+      });
 
-    return memberships.map((m: any) => ({
-      ...m.family.toJSON(),
-      myRole: m.role,
-    }));
+      // 如果没有加入任何家庭，直接返回空数组
+      if (!memberships || memberships.length === 0) {
+        return [];
+      }
+
+      // 获取每个家庭的详细信息
+      const families = await Promise.all(
+        memberships.map(async (m: any) => {
+          const family = m.family;
+          if (!family) return null;
+
+          // 获取成员数量
+          const memberCount = await FamilyMember.count({
+            where: { familyId: family.id },
+          });
+
+          return {
+            id: family.id,
+            name: family.name,
+            createdBy: family.createdBy,
+            memberCount,
+            myRole: m.role,
+          };
+        })
+      );
+
+      return families.filter((f) => f !== null);
+    } catch (error) {
+      console.error("获取用户家庭列表失败:", error);
+      throw error;
+    }
   }
 
   // 获取单个家庭详情
