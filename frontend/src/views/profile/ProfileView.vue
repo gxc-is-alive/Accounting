@@ -36,6 +36,11 @@
           <span class="item-text">预算管理</span>
           <el-icon :size="16" class="item-arrow"><ArrowRight /></el-icon>
         </router-link>
+        <router-link to="/investment" class="mobile-list-item touchable">
+          <el-icon :size="20" class="item-icon"><TrendCharts /></el-icon>
+          <span class="item-text">定投管理</span>
+          <el-icon :size="16" class="item-arrow"><ArrowRight /></el-icon>
+        </router-link>
         <router-link to="/ai" class="mobile-list-item touchable">
           <el-icon :size="20" class="item-icon"><ChatDotRound /></el-icon>
           <span class="item-text">AI 助手</span>
@@ -85,6 +90,7 @@ import {
   Grid,
   SwitchButton,
   ArrowRight,
+  TrendCharts,
 } from '@element-plus/icons-vue';
 
 const router = useRouter();

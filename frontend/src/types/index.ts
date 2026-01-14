@@ -501,3 +501,184 @@ export interface BatchUpdateNetValueParams {
   }>;
   date?: string;
 }
+
+// ========== 定投功能：类型定义 ==========
+
+// 定投频率类型
+export type AutoInvestmentFrequency = "daily" | "weekly" | "monthly";
+
+// 定投计划状态
+export type AutoInvestmentPlanStatus = "active" | "paused" | "deleted";
+
+// 执行记录状态
+export type ExecutionRecordStatus = "success" | "failed";
+
+// 提醒类型
+export type InvestmentReminderType =
+  | "execution_failed"
+  | "insufficient_balance";
+
+// 定投计划
+export interface AutoInvestmentPlan {
+  id: number;
+  userId: number;
+  name: string;
+  sourceAccountId: number;
+  targetAccountId: number;
+  amount: number;
+  frequency: AutoInvestmentFrequency;
+  executionDay?: number;
+  executionTime: string;
+  status: AutoInvestmentPlanStatus;
+  nextExecutionDate: string;
+  createdAt: string;
+  updatedAt: string;
+  // 关联数据
+  sourceAccount?: Account;
+  targetAccount?: Account;
+}
+
+// 执行记录
+export interface ExecutionRecord {
+  id: number;
+  planId: number | null;
+  userId: number;
+  sourceAccountId: number;
+  targetAccountId: number;
+  paidAmount: number;
+  investedAmount: number;
+  discountRate: number;
+  shares: number;
+  netValue: number;
+  status: ExecutionRecordStatus;
+  failReason?: string;
+  executedAt: string;
+  createdAt: string;
+  // 关联数据
+  plan?: AutoInvestmentPlan;
+  sourceAccount?: Account;
+  targetAccount?: Account;
+}
+
+// 投资提醒
+export interface InvestmentReminder {
+  id: number;
+  userId: number;
+  planId: number;
+  type: InvestmentReminderType;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+  // 关联数据
+  plan?: AutoInvestmentPlan;
+}
+
+// 创建定投计划参数
+export interface CreateAutoInvestmentPlanParams {
+  name: string;
+  sourceAccountId: number;
+  targetAccountId: number;
+  amount: number;
+  frequency: AutoInvestmentFrequency;
+  executionDay?: number;
+  executionTime?: string;
+}
+
+// 更新定投计划参数
+export interface UpdateAutoInvestmentPlanParams {
+  name?: string;
+  sourceAccountId?: number;
+  targetAccountId?: number;
+  amount?: number;
+  frequency?: AutoInvestmentFrequency;
+  executionDay?: number;
+  executionTime?: string;
+}
+
+// 单次买入转换参数
+export interface OneTimeBuyParams {
+  sourceAccountId: number;
+  targetAccountId: number;
+  paidAmount: number;
+  investedAmount: number;
+  date?: string;
+}
+
+// 执行记录筛选参数
+export interface ExecutionRecordFilters {
+  planId?: number;
+  startDate?: string;
+  endDate?: string;
+  status?: ExecutionRecordStatus;
+  page?: number;
+  pageSize?: number;
+}
+
+// 执行记录分页响应
+export interface ExecutionRecordPaginatedResponse {
+  records: ExecutionRecord[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+// ========== 快速平账功能：类型定义 ==========
+
+// 差额类型
+export type DifferenceType = "profit" | "loss" | "none";
+
+// 余额预览响应
+export interface BalancePreviewResponse {
+  accountId: number;
+  accountName: string;
+  currentBalance: number;
+  actualBalance: number;
+  difference: number;
+  differenceType: DifferenceType;
+}
+
+// 快速平账参数
+export interface QuickBalanceParams {
+  actualBalance: number;
+  note?: string;
+}
+
+// 快速平账响应
+export interface QuickBalanceResponse {
+  id: number;
+  accountId: number;
+  previousBalance: number;
+  newBalance: number;
+  difference: number;
+  note?: string;
+  createdAt: string;
+}
+
+// 平账记录
+export interface BalanceAdjustmentRecord {
+  id: number;
+  accountId: number;
+  accountName: string;
+  previousBalance: number;
+  newBalance: number;
+  difference: number;
+  differenceType: DifferenceType;
+  note?: string;
+  createdAt: string;
+}
+
+// 平账记录筛选参数
+export interface BalanceAdjustmentFilters {
+  accountId?: number;
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+// 平账记录分页响应
+export interface BalanceAdjustmentPaginatedResponse {
+  records: BalanceAdjustmentRecord[];
+  total: number;
+}

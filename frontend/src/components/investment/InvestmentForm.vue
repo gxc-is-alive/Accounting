@@ -108,7 +108,7 @@
 
     <template #footer>
       <el-button @click="handleClose">取消</el-button>
-      <el-button type="primary" :loading="loading" @click="handleSubmit">
+      <el-button type="primary" :loading="loading" :disabled="loading" @click="handleSubmit">
         确认{{ form.type === 'buy' ? '买入' : '卖出' }}
       </el-button>
     </template>

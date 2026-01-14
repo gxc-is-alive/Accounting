@@ -110,7 +110,7 @@
 
     <div class="form-actions">
       <el-button @click="$emit('cancel')">取消</el-button>
-      <el-button type="primary" :loading="submitting" @click="handleSubmit">
+      <el-button type="primary" :loading="submitting" :disabled="submitting" @click="handleSubmit">
         确认还款
       </el-button>
     </div>

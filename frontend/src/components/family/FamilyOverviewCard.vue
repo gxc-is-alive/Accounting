@@ -28,6 +28,14 @@
         >
           查看详情
         </el-button>
+        <el-button
+          type="success"
+          link
+          size="small"
+          @click="$emit('viewAssets')"
+        >
+          家庭资产
+        </el-button>
       </div>
     </div>
 
@@ -107,6 +115,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   viewDetail: [];
+  viewAssets: [];
   familyChange: [familyId: number];
 }>();
 

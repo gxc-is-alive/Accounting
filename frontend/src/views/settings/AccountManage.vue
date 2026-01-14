@@ -3,7 +3,7 @@
     <div class="page-card">
       <div class="page-header">
         <h3 class="page-title">账户管理</h3>
-        <el-button type="primary" @click="showAddDialog">
+        <el-button type="primary" @click="handleAddAccount">
           <el-icon><Plus /></el-icon>
           {{ isMobile ? '' : '添加账户' }}
         </el-button>
@@ -21,7 +21,7 @@
             :key="account.id"
             :account="account"
             @repay="goToRepayment(account)"
-            @detail="showAccountDetail(account)"
+            @detail="handleAccountClick(account)"
           />
         </template>
 
@@ -34,7 +34,7 @@
             :actions="swipeActions"
             @action="(action: { key: string }) => handleSwipeAction(action, account)"
           >
-            <div class="account-card-mobile" @click="showAccountDetail(account)">
+            <div class="account-card-mobile" @click="handleAccountClick(account)">
               <div class="account-icon">
                 <el-icon size="24"><Wallet /></el-icon>
               </div>
@@ -84,6 +84,7 @@
               <div class="balance-value">¥ {{ account.balance.toFixed(2) }}</div>
             </div>
             <div class="account-actions">
+              <el-button type="success" link @click="handleQuickBalance(account)">平账</el-button>
               <el-button type="primary" link @click="handleEdit(account)">编辑</el-button>
               <el-button type="danger" link @click="handleDelete(account)">删除</el-button>
             </div>
@@ -141,79 +142,15 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">
+        <el-button type="primary" :loading="submitting" :disabled="submitting" @click="handleSubmit">
           确定
         </el-button>
       </template>
     </el-dialog>
 
-    <!-- 移动端底部弹窗表单 -->
+    <!-- 移动端账户详情（备用，实际会导航到编辑页面） -->
     <BottomSheet
-      v-if="isMobile"
-      v-model:visible="dialogVisible"
-      :title="isEdit ? '编辑账户' : '添加账户'"
-    >
-      <div class="mobile-form">
-        <div class="form-item">
-          <label>账户名称</label>
-          <el-input v-model="form.name" placeholder="如：招商银行" />
-        </div>
-        <div class="form-item">
-          <label>账户类型</label>
-          <el-select v-model="form.type" placeholder="选择类型" :teleported="false" style="width: 100%" @change="onTypeChange">
-            <el-option
-              v-for="(label, value) in accountTypeLabels"
-              :key="value"
-              :label="label"
-              :value="value"
-            />
-          </el-select>
-        </div>
-        <div v-if="!isEdit" class="form-item">
-          <label>初始余额</label>
-          <el-input
-            v-model.number="form.initialBalance"
-            type="number"
-            inputmode="decimal"
-            placeholder="请输入金额"
-          />
-        </div>
-        <!-- 信用账户额外字段 -->
-        <template v-if="form.type === 'credit'">
-          <div class="form-item">
-            <label>信用额度</label>
-            <el-input
-              v-model.number="form.creditLimit"
-              type="number"
-              inputmode="decimal"
-              placeholder="请输入信用额度"
-            />
-          </div>
-          <div class="form-item">
-            <label>账单日</label>
-            <el-select v-model="form.billingDay" placeholder="选择账单日" :teleported="false" style="width: 100%">
-              <el-option v-for="day in 28" :key="day" :label="`每月${day}日`" :value="day" />
-            </el-select>
-          </div>
-          <div class="form-item">
-            <label>还款日</label>
-            <el-select v-model="form.dueDay" placeholder="选择还款日" :teleported="false" style="width: 100%">
-              <el-option v-for="day in 28" :key="day" :label="`每月${day}日`" :value="day" />
-            </el-select>
-          </div>
-        </template>
-      </div>
-      <template #footer>
-        <div class="mobile-form-footer">
-          <el-button @click="dialogVisible = false" style="flex: 1">取消</el-button>
-          <el-button type="primary" :loading="submitting" @click="handleSubmit" style="flex: 1">确定</el-button>
-        </div>
-      </template>
-    </BottomSheet>
-
-    <!-- 移动端账户详情 -->
-    <BottomSheet
-      v-if="isMobile"
+      v-if="isMobile && !isMobile"
       v-model:visible="detailVisible"
       title="账户详情"
     >
@@ -254,6 +191,13 @@
         </div>
       </template>
     </BottomSheet>
+
+    <!-- 快速平账对话框 -->
+    <QuickBalanceForm
+      v-model="quickBalanceVisible"
+      :account="quickBalanceAccount"
+      @success="handleQuickBalanceSuccess"
+    />
   </div>
 </template>
 
@@ -267,12 +211,26 @@ import { useDevice } from '@/composables/useDevice';
 import SwipeAction from '@/components/mobile/SwipeAction.vue';
 import BottomSheet from '@/components/mobile/BottomSheet.vue';
 import CreditAccountCard from '@/components/credit/CreditAccountCard.vue';
+import QuickBalanceForm from '@/components/account/QuickBalanceForm.vue';
 import type { Account, AccountType } from '@/types';
 
 const router = useRouter();
 const { isMobile } = useDevice();
 const accountStore = useAccountStore();
 const accounts = computed(() => accountStore.accounts);
+
+// 快速平账
+const quickBalanceVisible = ref(false);
+const quickBalanceAccount = ref<Account | undefined>(undefined);
+
+function handleQuickBalance(account: Account) {
+  quickBalanceAccount.value = account;
+  quickBalanceVisible.value = true;
+}
+
+function handleQuickBalanceSuccess() {
+  accountStore.fetchAccounts();
+}
 
 // 分离信用账户和普通账户
 const creditAccounts = computed(() => accounts.value.filter(a => a.type === 'credit'));
@@ -283,15 +241,46 @@ const selectedAccount = ref<Account | null>(null);
 
 // 滑动操作
 const swipeActions = [
+  { key: 'balance', text: '平账', color: '#67c23a' },
   { key: 'edit', text: '编辑', color: '#409eff' },
   { key: 'delete', text: '删除', color: '#f56c6c' }
 ];
 
 function handleSwipeAction(action: { key: string }, account: Account) {
-  if (action.key === 'edit') {
-    handleEdit(account);
+  if (action.key === 'balance') {
+    handleQuickBalance(account);
+  } else if (action.key === 'edit') {
+    navigateToEditAccount(account);
   } else if (action.key === 'delete') {
     handleDelete(account);
+  }
+}
+
+// 移动端导航到编辑页面
+function navigateToEditAccount(account: Account) {
+  router.push(`/settings/accounts/form/${account.id}`);
+}
+
+// 移动端导航到添加页面
+function navigateToAddAccount() {
+  router.push('/settings/accounts/form');
+}
+
+// 处理添加账户按钮点击
+function handleAddAccount() {
+  if (isMobile.value) {
+    navigateToAddAccount();
+  } else {
+    showAddDialog();
+  }
+}
+
+// 处理账户点击
+function handleAccountClick(account: Account) {
+  if (isMobile.value) {
+    navigateToEditAccount(account);
+  } else {
+    showAccountDetail(account);
   }
 }
 
@@ -310,6 +299,7 @@ const accountTypeLabels: Record<AccountType, string> = {
   alipay: '支付宝',
   wechat: '微信',
   credit: '信用卡',
+  investment: '投资账户',
   other: '其他',
 };
 

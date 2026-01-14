@@ -5,7 +5,8 @@
     "main": "dist/index.js",
     "scripts": {
         "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-        "build": "tsc",
+        "build": "tsc && npm run copy-migrations",
+        "copy-migrations": "node -e \"const fs=require('fs');const path=require('path');const src='src/scripts/migrations';const dest='dist/scripts/migrations';if(!fs.existsSync(dest)){fs.mkdirSync(dest,{recursive:true});}fs.readdirSync(src).forEach(f=>fs.copyFileSync(path.join(src,f),path.join(dest,f)));console.log('Migrations copied.')\"",
         "start": "node dist/index.js",
         "test": "jest",
         "test:watch": "jest --watch",

@@ -75,6 +75,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "账户管理" },
       },
       {
+        path: "settings/accounts/form/:id?",
+        name: "AccountForm",
+        component: () => import("@/views/settings/AccountForm.vue"),
+        meta: { title: "账户表单" },
+      },
+      {
         path: "settings/categories",
         name: "CategoryManage",
         component: () => import("@/views/settings/CategoryManage.vue"),
@@ -90,7 +96,7 @@ const routes: RouteRecordRaw[] = [
         path: "investment",
         name: "Investment",
         component: () => import("@/views/investment/InvestmentManage.vue"),
-        meta: { title: "投资管理" },
+        meta: { title: "定投管理" },
       },
       {
         path: "ai",

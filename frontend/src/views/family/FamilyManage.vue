@@ -1,55 +1,89 @@
 <template>
   <div class="family-manage-page" :class="{ 'is-mobile': isMobile }">
-    <div class="page-card">
-      <div class="page-header">
-        <h3 class="page-title">家庭管理</h3>
-        <div class="header-actions">
-          <el-button type="primary" @click="showCreateDialog">
-            <el-icon><Plus /></el-icon>
-            {{ isMobile ? '' : '创建家庭' }}
-          </el-button>
-          <el-button @click="showJoinDialog">
-            <el-icon><Connection /></el-icon>
-            {{ isMobile ? '' : '加入家庭' }}
-          </el-button>
-        </div>
-      </div>
-
-      <el-empty v-if="!families.length" description="您还没有加入任何家庭" />
-      
-      <!-- 移动端卡片列表 -->
-      <div v-else-if="isMobile" class="family-list-mobile">
-        <div v-for="family in families" :key="family.id" class="family-card-mobile">
-          <div class="family-info-mobile">
-            <div class="family-avatar">{{ family.name.charAt(0) }}</div>
-            <div class="family-detail">
-              <h4>{{ family.name }}</h4>
-              <span class="member-count">{{ family.memberCount || 0 }} 位成员</span>
+    <!-- Tab 切换 -->
+    <el-tabs v-model="activeTab" class="family-tabs">
+      <el-tab-pane label="家庭管理" name="manage">
+        <div class="page-card">
+          <div class="page-header">
+            <h3 class="page-title">家庭管理</h3>
+            <div class="header-actions">
+              <el-button type="primary" @click="showCreateDialog">
+                <el-icon><Plus /></el-icon>
+                {{ isMobile ? '' : '创建家庭' }}
+              </el-button>
+              <el-button @click="showJoinDialog">
+                <el-icon><Connection /></el-icon>
+                {{ isMobile ? '' : '加入家庭' }}
+              </el-button>
             </div>
           </div>
-          <div class="family-actions-mobile">
-            <el-button size="small" @click="viewMembers(family)">成员</el-button>
-            <el-button size="small" type="primary" @click="generateInvite(family.id)">邀请</el-button>
-            <el-button size="small" type="danger" plain @click="leaveFamily(family.id)">退出</el-button>
-          </div>
-        </div>
-      </div>
 
-      <!-- 桌面端网格布局 -->
-      <div v-else class="family-list">
-        <div v-for="family in families" :key="family.id" class="family-card">
-          <div class="family-info">
-            <h4>{{ family.name }}</h4>
-            <span class="member-count">{{ family.memberCount || 0 }} 位成员</span>
+          <el-empty v-if="!families.length" description="您还没有加入任何家庭" />
+          
+          <!-- 移动端卡片列表 -->
+          <div v-else-if="isMobile" class="family-list-mobile">
+            <div v-for="family in families" :key="family.id" class="family-card-mobile">
+              <div class="family-info-mobile">
+                <div class="family-avatar">{{ family.name.charAt(0) }}</div>
+                <div class="family-detail">
+                  <h4>{{ family.name }}</h4>
+                  <span class="member-count">{{ family.memberCount || 0 }} 位成员</span>
+                </div>
+              </div>
+              <div class="family-actions-mobile">
+                <el-button size="small" @click="viewMembers(family)">成员</el-button>
+                <el-button size="small" type="primary" @click="generateInvite(family.id)">邀请</el-button>
+                <el-button size="small" type="danger" plain @click="leaveFamily(family.id)">退出</el-button>
+              </div>
+            </div>
           </div>
-          <div class="family-actions">
-            <el-button size="small" @click="viewMembers(family)">查看成员</el-button>
-            <el-button size="small" type="primary" @click="generateInvite(family.id)">邀请</el-button>
-            <el-button size="small" type="danger" @click="leaveFamily(family.id)">退出</el-button>
+
+          <!-- 桌面端网格布局 -->
+          <div v-else class="family-list">
+            <div v-for="family in families" :key="family.id" class="family-card">
+              <div class="family-info">
+                <h4>{{ family.name }}</h4>
+                <span class="member-count">{{ family.memberCount || 0 }} 位成员</span>
+              </div>
+              <div class="family-actions">
+                <el-button size="small" @click="viewMembers(family)">查看成员</el-button>
+                <el-button size="small" type="primary" @click="generateInvite(family.id)">邀请</el-button>
+                <el-button size="small" type="danger" @click="leaveFamily(family.id)">退出</el-button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      </el-tab-pane>
+
+      <el-tab-pane label="家庭资产" name="assets">
+        <div class="page-card">
+          <div class="page-header">
+            <h3 class="page-title">家庭资产总览</h3>
+            <el-select
+              v-if="families.length > 1"
+              v-model="selectedFamilyId"
+              size="default"
+              placeholder="选择家庭"
+              @change="onFamilyChange"
+            >
+              <el-option
+                v-for="family in families"
+                :key="family.id"
+                :label="family.name"
+                :value="family.id"
+              />
+            </el-select>
+          </div>
+
+          <el-empty v-if="!families.length" description="您还没有加入任何家庭" />
+          <FamilyAssetsCard
+            v-else-if="selectedFamilyId"
+            ref="assetsCardRef"
+            :family-id="selectedFamilyId"
+          />
+        </div>
+      </el-tab-pane>
+    </el-tabs>
 
     <!-- 创建家庭对话框 - 桌面端 -->
     <el-dialog v-if="!isMobile" v-model="createDialogVisible" title="创建家庭" width="400px">
@@ -186,20 +220,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { Plus, Connection } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { familyApi } from '@/api';
 import { useDevice } from '@/composables/useDevice';
 import BottomSheet from '@/components/mobile/BottomSheet.vue';
+import FamilyAssetsCard from '@/components/family/FamilyAssetsCard.vue';
 import type { Family, FamilyMember } from '@/types';
 
+const route = useRoute();
 const { isMobile } = useDevice();
 
+const activeTab = ref('manage');
 const families = ref<Family[]>([]);
 const members = ref<FamilyMember[]>([]);
 const inviteCode = ref('');
 const currentFamilyId = ref<number | null>(null);
+const selectedFamilyId = ref<number | null>(null);
+const assetsCardRef = ref<InstanceType<typeof FamilyAssetsCard>>();
 
 const createDialogVisible = ref(false);
 const joinDialogVisible = ref(false);
@@ -214,10 +254,18 @@ async function loadFamilies() {
     const res = await familyApi.list() as unknown as { success: boolean; data: Family[] };
     if (res.success) {
       families.value = res.data || [];
+      // 设置默认选中的家庭
+      if (families.value.length > 0 && !selectedFamilyId.value) {
+        selectedFamilyId.value = families.value[0].id;
+      }
     }
   } catch (error) {
     console.error('加载家庭列表失败:', error);
   }
+}
+
+function onFamilyChange() {
+  assetsCardRef.value?.refresh();
 }
 
 function showCreateDialog() {
@@ -304,9 +352,24 @@ async function leaveFamily(familyId: number) {
 }
 
 onMounted(loadFamilies);
+
+// 监听路由参数，切换到资产 Tab
+watch(() => route.query.tab, (tab) => {
+  if (tab === 'assets') {
+    activeTab.value = 'assets';
+  }
+}, { immediate: true });
 </script>
 
 <style scoped>
+.family-tabs {
+  margin-bottom: 16px;
+}
+
+.family-tabs :deep(.el-tabs__header) {
+  margin-bottom: 16px;
+}
+
 .page-header {
   display: flex;
   justify-content: space-between;

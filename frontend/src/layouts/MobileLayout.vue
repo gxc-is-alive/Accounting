@@ -91,6 +91,7 @@ const routeNames: Record<string, string> = {
   '/settings/accounts': '账户管理',
   '/settings/categories': '分类管理',
   '/settings/bill-types': '账单类型',
+  '/investment': '定投管理',
   '/ai': 'AI 助手',
   '/profile': '我的',
 };

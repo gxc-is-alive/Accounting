@@ -2,3 +2,8 @@ export { default as InvestmentAccountCard } from "./InvestmentAccountCard.vue";
 export { default as InvestmentForm } from "./InvestmentForm.vue";
 export { default as NetValueUpdateSheet } from "./NetValueUpdateSheet.vue";
 export { default as InvestmentOverviewCard } from "./InvestmentOverviewCard.vue";
+export { default as AutoInvestmentList } from "./AutoInvestmentList.vue";
+export { default as AutoInvestmentForm } from "./AutoInvestmentForm.vue";
+export { default as OneTimeBuyForm } from "./OneTimeBuyForm.vue";
+export { default as ExecutionRecordList } from "./ExecutionRecordList.vue";
+export { default as InvestmentReminder } from "./InvestmentReminder.vue";

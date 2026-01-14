@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { body, param } from "express-validator";
 import accountController from "../controllers/account.controller";
+import balanceAdjustmentController from "../controllers/balanceAdjustment.controller";
 import { authenticate } from "../middleware/auth";
 
 const router = Router();
@@ -94,5 +95,31 @@ router.get(
 
 // 获取用户信用账户汇总
 router.get("/credit/summary", accountController.getCreditSummary);
+
+// ========== 快速平账 ==========
+
+// 预览平账差额
+router.get(
+  "/:id/balance-preview",
+  [param("id").isInt({ min: 1 }).withMessage("无效的账户ID")],
+  balanceAdjustmentController.previewBalance
+);
+
+// 执行快速平账
+router.post(
+  "/:id/quick-balance",
+  [
+    param("id").isInt({ min: 1 }).withMessage("无效的账户ID"),
+    body("actualBalance")
+      .isFloat({ min: 0 })
+      .withMessage("实际总额必须是非负数"),
+    body("note")
+      .optional()
+      .isString()
+      .isLength({ max: 255 })
+      .withMessage("备注不能超过255个字符"),
+  ],
+  balanceAdjustmentController.executeQuickBalance
+);
 
 export default router;

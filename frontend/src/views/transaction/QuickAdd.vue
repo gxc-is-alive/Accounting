@@ -101,6 +101,7 @@
         type="primary"
         size="large"
         :loading="submitting"
+        :disabled="submitting"
         class="submit-btn"
         @click="handleSubmit"
       >
@@ -304,9 +305,11 @@ onMounted(async () => {
 
 .quick-add-page--mobile {
   max-width: none;
-  height: 100%;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .quick-add-page--mobile .page-card {
@@ -315,6 +318,7 @@ onMounted(async () => {
   flex-direction: column;
   border-radius: 0;
   box-shadow: none;
+  overflow: visible;
 }
 
 .type-tabs {

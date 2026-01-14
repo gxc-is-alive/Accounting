@@ -16,6 +16,8 @@ import exportRoutes from "./routes/export.routes";
 import attachmentRoutes from "./routes/attachment.routes";
 import migrationRoutes from "./routes/migration.routes";
 import investmentRoutes from "./routes/investment.routes";
+import autoInvestmentRoutes from "./routes/autoInvestment.routes";
+import balanceAdjustmentRoutes from "./routes/balanceAdjustment.routes";
 
 // 创建 Express 应用
 const app: Application = express();
@@ -44,6 +46,8 @@ app.use("/api/export", exportRoutes);
 app.use("/api/attachments", attachmentRoutes);
 app.use("/api/migration", migrationRoutes);
 app.use("/api/investment", investmentRoutes);
+app.use("/api/auto-investment", autoInvestmentRoutes);
+app.use("/api/balance-adjustments", balanceAdjustmentRoutes);
 
 // 静态文件服务 - 用于访问上传的附件
 app.use("/uploads", express.static("uploads"));

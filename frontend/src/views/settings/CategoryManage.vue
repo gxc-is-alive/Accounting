@@ -71,7 +71,7 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">确定</el-button>
+        <el-button type="primary" :loading="submitting" :disabled="submitting" @click="handleSubmit">确定</el-button>
       </template>
     </el-dialog>
 
@@ -97,7 +97,7 @@
       <template #footer>
         <div class="mobile-form-footer">
           <el-button @click="dialogVisible = false" style="flex: 1">取消</el-button>
-          <el-button type="primary" :loading="submitting" @click="handleSubmit" style="flex: 1">确定</el-button>
+          <el-button type="primary" :loading="submitting" :disabled="submitting" @click="handleSubmit" style="flex: 1">确定</el-button>
         </div>
       </template>
     </BottomSheet>

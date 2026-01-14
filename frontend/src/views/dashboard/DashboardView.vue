@@ -42,6 +42,7 @@
         ref="familyOverviewRef"
         class="page-card"
         @view-detail="goToFamilyReport"
+        @view-assets="goToFamilyAssets"
       />
 
       <!-- 投资概览 -->
@@ -142,6 +143,7 @@
           ref="familyOverviewRef"
           class="page-card family-card"
           @view-detail="goToFamilyReport"
+          @view-assets="goToFamilyAssets"
         />
 
         <!-- 投资概览 -->
@@ -287,7 +289,11 @@ const checkFamilies = async () => {
 };
 
 const goToFamilyReport = () => {
-  router.push('/family/report');
+  router.push('/family');
+};
+
+const goToFamilyAssets = () => {
+  router.push('/family?tab=assets');
 };
 
 const goToInvestment = () => {

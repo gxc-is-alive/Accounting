@@ -61,6 +61,19 @@ export const accountApi = {
 
   getCreditSummary: () =>
     request.get<ApiResponse<CreditSummary>>("/accounts/credit/summary"),
+
+  // 快速平账相关
+  previewBalance: (id: number, actualBalance: number) =>
+    request.get<ApiResponse<BalancePreviewResponse>>(
+      `/accounts/${id}/balance-preview`,
+      { params: { actualBalance } }
+    ),
+
+  executeQuickBalance: (id: number, data: QuickBalanceParams) =>
+    request.post<ApiResponse<QuickBalanceResponse>>(
+      `/accounts/${id}/quick-balance`,
+      data
+    ),
 };
 
 // 还款 API
@@ -245,6 +258,19 @@ import type {
   TradeResult,
   UpdateNetValueParams,
   BatchUpdateNetValueParams,
+  AutoInvestmentPlan,
+  ExecutionRecord,
+  InvestmentReminder,
+  CreateAutoInvestmentPlanParams,
+  UpdateAutoInvestmentPlanParams,
+  OneTimeBuyParams,
+  ExecutionRecordFilters,
+  ExecutionRecordPaginatedResponse,
+  BalancePreviewResponse,
+  QuickBalanceParams,
+  QuickBalanceResponse,
+  BalanceAdjustmentFilters,
+  BalanceAdjustmentPaginatedResponse,
 } from "@/types";
 
 export const attachmentApi = {
@@ -356,5 +382,108 @@ export const investmentApi = {
     request.post<ApiResponse<InvestmentAccount[]>>(
       "/investment/valuations/batch",
       data
+    ),
+};
+
+// ========== 定投 API ==========
+
+export const autoInvestmentApi = {
+  // ========== 定投计划 ==========
+
+  // 获取定投计划列表
+  listPlans: () =>
+    request.get<ApiResponse<AutoInvestmentPlan[]>>("/auto-investment/plans"),
+
+  // 获取单个定投计划详情
+  getPlan: (id: number) =>
+    request.get<ApiResponse<AutoInvestmentPlan>>(
+      `/auto-investment/plans/${id}`
+    ),
+
+  // 创建定投计划
+  createPlan: (data: CreateAutoInvestmentPlanParams) =>
+    request.post<ApiResponse<AutoInvestmentPlan>>(
+      "/auto-investment/plans",
+      data
+    ),
+
+  // 更新定投计划
+  updatePlan: (id: number, data: UpdateAutoInvestmentPlanParams) =>
+    request.put<ApiResponse<AutoInvestmentPlan>>(
+      `/auto-investment/plans/${id}`,
+      data
+    ),
+
+  // 暂停定投计划
+  pausePlan: (id: number) =>
+    request.post<ApiResponse<AutoInvestmentPlan>>(
+      `/auto-investment/plans/${id}/pause`
+    ),
+
+  // 恢复定投计划
+  resumePlan: (id: number) =>
+    request.post<ApiResponse<AutoInvestmentPlan>>(
+      `/auto-investment/plans/${id}/resume`
+    ),
+
+  // 删除定投计划
+  deletePlan: (id: number) =>
+    request.delete<ApiResponse>(`/auto-investment/plans/${id}`),
+
+  // 获取计划的执行记录
+  getPlanRecords: (id: number) =>
+    request.get<ApiResponse<ExecutionRecord[]>>(
+      `/auto-investment/plans/${id}/records`
+    ),
+
+  // ========== 执行记录 ==========
+
+  // 获取执行记录列表
+  listRecords: (params?: ExecutionRecordFilters) =>
+    request.get<ApiResponse<ExecutionRecordPaginatedResponse>>(
+      "/auto-investment/records",
+      { params }
+    ),
+
+  // 单次买入转换（支持折扣）
+  oneTimeBuy: (data: OneTimeBuyParams) =>
+    request.post<ApiResponse<ExecutionRecord>>(
+      "/auto-investment/one-time-buy",
+      data
+    ),
+
+  // ========== 提醒 ==========
+
+  // 获取未读提醒
+  listReminders: () =>
+    request.get<ApiResponse<InvestmentReminder[]>>(
+      "/auto-investment/reminders"
+    ),
+
+  // 获取未读提醒数量
+  getReminderCount: () =>
+    request.get<ApiResponse<{ count: number }>>(
+      "/auto-investment/reminders/count"
+    ),
+
+  // 标记提醒为已读
+  markReminderRead: (id: number) =>
+    request.post<ApiResponse>(`/auto-investment/reminders/${id}/read`),
+
+  // 标记所有提醒为已读
+  markAllRemindersRead: () =>
+    request.post<ApiResponse<{ count: number }>>(
+      "/auto-investment/reminders/read-all"
+    ),
+};
+
+// ========== 平账记录 API ==========
+
+export const balanceAdjustmentApi = {
+  // 获取平账记录列表
+  getRecords: (params?: BalanceAdjustmentFilters) =>
+    request.get<ApiResponse<BalanceAdjustmentPaginatedResponse>>(
+      "/balance-adjustments",
+      { params }
     ),
 };

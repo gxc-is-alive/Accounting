@@ -7,7 +7,7 @@ import sequelize from "../config/database";
 import { QueryTypes } from "sequelize";
 
 // 当前数据库版本
-const CURRENT_VERSION = 8;
+const CURRENT_VERSION = 10;
 
 // 迁移定义
 interface Migration {
@@ -207,6 +207,98 @@ class MigrationService {
                 UNIQUE KEY unique_account_date (account_id, date),
                 INDEX idx_account_date (account_id, date)
               )
+            `);
+          }
+        },
+      },
+      {
+        version: 9,
+        name: "添加定投功能",
+        up: async () => {
+          // 1. 创建定投计划表
+          if (!(await this.tableExists("auto_investment_plans"))) {
+            await sequelize.query(`
+              CREATE TABLE auto_investment_plans (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                user_id INT UNSIGNED NOT NULL,
+                name VARCHAR(100) NOT NULL COMMENT '计划名称',
+                source_account_id INT UNSIGNED NOT NULL COMMENT '资金来源账户',
+                target_account_id INT UNSIGNED NOT NULL COMMENT '目标账户',
+                amount DECIMAL(15, 2) NOT NULL COMMENT '定投金额',
+                frequency ENUM('daily', 'weekly', 'monthly') NOT NULL COMMENT '执行频率',
+                execution_day TINYINT NULL COMMENT '执行日（周几1-7或月几1-31）',
+                execution_time VARCHAR(5) NOT NULL DEFAULT '09:00' COMMENT '执行时间 HH:mm',
+                status ENUM('active', 'paused', 'deleted') NOT NULL DEFAULT 'active' COMMENT '状态',
+                next_execution_date DATE NOT NULL COMMENT '下次执行日期',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_user_status (user_id, status),
+                INDEX idx_next_execution (next_execution_date, status)
+              ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            `);
+          }
+
+          // 2. 创建执行记录表
+          if (!(await this.tableExists("execution_records"))) {
+            await sequelize.query(`
+              CREATE TABLE execution_records (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                plan_id INT UNSIGNED NULL COMMENT '关联的定投计划（单次买入为null）',
+                user_id INT UNSIGNED NOT NULL,
+                source_account_id INT UNSIGNED NOT NULL COMMENT '资金来源账户',
+                target_account_id INT UNSIGNED NOT NULL COMMENT '目标账户',
+                paid_amount DECIMAL(15, 2) NOT NULL COMMENT '实际支付金额',
+                invested_amount DECIMAL(15, 2) NOT NULL COMMENT '获得的金额',
+                discount_rate DECIMAL(5, 4) NOT NULL DEFAULT 1.0000 COMMENT '折扣率',
+                shares DECIMAL(15, 4) NOT NULL COMMENT '买入份额',
+                net_value DECIMAL(15, 4) NOT NULL COMMENT '买入时净值',
+                status ENUM('success', 'failed') NOT NULL COMMENT '执行状态',
+                fail_reason VARCHAR(255) NULL COMMENT '失败原因',
+                executed_at TIMESTAMP NOT NULL COMMENT '执行时间',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_user_executed (user_id, executed_at),
+                INDEX idx_plan_executed (plan_id, executed_at)
+              ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            `);
+          }
+
+          // 3. 创建投资提醒表
+          if (!(await this.tableExists("investment_reminders"))) {
+            await sequelize.query(`
+              CREATE TABLE investment_reminders (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                user_id INT UNSIGNED NOT NULL,
+                plan_id INT UNSIGNED NOT NULL,
+                type ENUM('execution_failed', 'insufficient_balance') NOT NULL COMMENT '提醒类型',
+                message VARCHAR(500) NOT NULL COMMENT '提醒消息',
+                is_read BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否已读',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_user_unread (user_id, is_read)
+              ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            `);
+          }
+        },
+      },
+      {
+        version: 10,
+        name: "添加快速平账功能",
+        up: async () => {
+          // 创建余额调整记录表
+          if (!(await this.tableExists("balance_adjustments"))) {
+            await sequelize.query(`
+              CREATE TABLE balance_adjustments (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                user_id INT UNSIGNED NOT NULL,
+                account_id INT UNSIGNED NOT NULL,
+                previous_balance DECIMAL(15, 2) NOT NULL COMMENT '调整前余额',
+                new_balance DECIMAL(15, 2) NOT NULL COMMENT '调整后余额',
+                difference DECIMAL(15, 2) NOT NULL COMMENT '差额',
+                note VARCHAR(255) NULL COMMENT '备注',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_user_id (user_id),
+                INDEX idx_account_id (account_id),
+                INDEX idx_created_at (created_at)
+              ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             `);
           }
         },

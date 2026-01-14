@@ -51,6 +51,9 @@ const selectAccount = (accountId: number) => {
 <style scoped>
 .account-selector {
   margin-bottom: 24px;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .section-title {
@@ -69,12 +72,13 @@ const selectAccount = (accountId: number) => {
 
 .account-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
+  width: 100%;
 }
 
 .account-grid--mobile {
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--spacing-sm, 8px);
 }
 
@@ -88,6 +92,8 @@ const selectAccount = (accountId: number) => {
   transition: all 0.3s;
   background: #f5f7fa;
   min-height: var(--touch-target-min, 44px);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .account-item:hover {
@@ -111,5 +117,6 @@ const selectAccount = (accountId: number) => {
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
+  width: 100%;
 }
 </style>

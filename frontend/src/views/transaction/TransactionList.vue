@@ -285,7 +285,7 @@
       </el-form>
       <template #footer>
         <el-button @click="editDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="submitEdit">
+        <el-button type="primary" :loading="submitting" :disabled="submitting" @click="submitEdit">
           保存
         </el-button>
       </template>
