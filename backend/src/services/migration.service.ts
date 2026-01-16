@@ -7,7 +7,7 @@ import sequelize from "../config/database";
 import { QueryTypes } from "sequelize";
 
 // 当前数据库版本
-const CURRENT_VERSION = 10;
+const CURRENT_VERSION = 11;
 
 // 迁移定义
 interface Migration {
@@ -301,6 +301,17 @@ class MigrationService {
               ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             `);
           }
+        },
+      },
+      {
+        version: 11,
+        name: "修复信用卡账户余额",
+        up: async () => {
+          // 修复：将所有信用卡账户的正余额重置为0
+          // 问题原因：创建信用卡时用户可能误将信用额度填入初始余额
+          await sequelize.query(`
+            UPDATE accounts SET balance = 0 WHERE type = 'credit' AND balance > 0
+          `);
         },
       },
     ];

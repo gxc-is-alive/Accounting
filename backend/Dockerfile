@@ -30,8 +30,9 @@ RUN npm ci --only=production
 # 从构建阶段复制编译后的代码
 COPY --from=builder /app/dist ./dist
 
-# 复制数据库初始化脚本
+# 复制数据库初始化脚本和升级脚本
 COPY src/scripts/initDb.sql ./scripts/
+COPY src/scripts/fix-credit-account-balance.sql ./scripts/
 
 # 设置环境变量
 ENV NODE_ENV=production

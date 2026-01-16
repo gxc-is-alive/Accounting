@@ -109,7 +109,8 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item v-if="!isEdit" label="初始余额" prop="initialBalance">
+        <!-- 非信用卡账户显示初始余额 -->
+        <el-form-item v-if="!isEdit && form.type !== 'credit'" label="初始余额" prop="initialBalance">
           <el-input-number
             v-model="form.initialBalance"
             :min="0"
@@ -333,6 +334,8 @@ const onTypeChange = (type: AccountType) => {
     form.creditLimit = form.creditLimit || 10000;
     form.billingDay = form.billingDay || 1;
     form.dueDay = form.dueDay || 20;
+    // 信用卡初始余额强制为0
+    form.initialBalance = 0;
   }
 };
 
@@ -396,8 +399,8 @@ const handleSubmit = async () => {
       await accountStore.updateAccount(editId.value, data);
       ElMessage.success('更新成功');
     } else {
-      // 使用 initialBalance 字段名，与后端 API 保持一致
-      (data as Record<string, unknown>).initialBalance = form.initialBalance;
+      // 信用卡账户初始余额强制为0
+      (data as Record<string, unknown>).initialBalance = form.type === 'credit' ? 0 : form.initialBalance;
       await accountStore.createAccount(data);
       ElMessage.success('添加成功');
     }
