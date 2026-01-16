@@ -4,25 +4,35 @@
     <div v-if="sortedAccounts.length === 0" class="empty-tip">
       暂无账户，请先创建账户
     </div>
-    <div v-else class="account-grid" :class="{ 'account-grid--mobile': isMobile }">
-      <div
-        v-for="account in sortedAccounts"
-        :key="account.id"
-        class="account-item"
-        :class="{ active: modelValue === account.id }"
-        :title="`${getAccountTypeName(account.type)} - ${account.name}`"
-        @click="selectAccount(account.id)"
-      >
-        <el-icon><component :is="getAccountIcon(account)" /></el-icon>
-        <span class="account-type">{{ getAccountTypeName(account.type) }}</span>
-        <span class="account-name">{{ account.name }}</span>
+    <template v-else>
+      <div class="account-grid" :class="{ 'account-grid--mobile': isMobile }">
+        <div
+          v-for="account in displayedAccounts"
+          :key="account.id"
+          class="account-item"
+          :class="{ active: modelValue === account.id }"
+          :title="`${getAccountTypeName(account.type)} - ${account.name}`"
+          @click="selectAccount(account.id)"
+        >
+          <el-icon><component :is="getAccountIcon(account)" /></el-icon>
+          <span class="account-type">{{ getAccountTypeName(account.type) }}</span>
+          <span class="account-name">{{ account.name }}</span>
+        </div>
       </div>
-    </div>
+      <!-- 展开/收起按钮 -->
+      <div v-if="hasMore" class="expand-btn" @click="toggleExpand">
+        <span>{{ isExpanded ? '收起' : `展开全部 (${sortedAccounts.length})` }}</span>
+        <el-icon :class="{ 'is-expanded': isExpanded }">
+          <ArrowDown />
+        </el-icon>
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import { ArrowDown } from '@element-plus/icons-vue';
 import type { Account } from '@/types';
 import { getAccountIcon } from '@/utils/iconMap';
 import { useDevice } from '@/composables/useDevice';
@@ -42,6 +52,12 @@ const emit = defineEmits<Emits>();
 const { device } = useDevice();
 const isMobile = computed(() => device.value.isMobile);
 
+// 展开状态
+const isExpanded = ref(false);
+
+// 默认显示数量：移动端4个（2行x2列），PC端6个（2行x3列）
+const defaultVisibleCount = computed(() => isMobile.value ? 4 : 6);
+
 // 账户类型名称映射
 const accountTypeNames: Record<string, string> = {
   cash: '现金',
@@ -60,8 +76,23 @@ const getAccountTypeName = (type: string): string => {
 // 直接使用传入的账户列表（排序由父组件处理）
 const sortedAccounts = computed(() => props.accounts);
 
+// 是否有更多账户需要展开
+const hasMore = computed(() => sortedAccounts.value.length > defaultVisibleCount.value);
+
+// 当前显示的账户列表
+const displayedAccounts = computed(() => {
+  if (isExpanded.value || !hasMore.value) {
+    return sortedAccounts.value;
+  }
+  return sortedAccounts.value.slice(0, defaultVisibleCount.value);
+});
+
 const selectAccount = (accountId: number) => {
   emit('update:modelValue', accountId);
+};
+
+const toggleExpand = () => {
+  isExpanded.value = !isExpanded.value;
 };
 </script>
 
@@ -87,15 +118,17 @@ const selectAccount = (accountId: number) => {
   border-radius: 8px;
 }
 
+/* PC端：每行3个 */
 .account-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
   width: 100%;
 }
 
+/* 移动端：每行2个 */
 .account-grid--mobile {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--spacing-sm, 8px);
 }
 
@@ -103,7 +136,7 @@ const selectAccount = (accountId: number) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 10px 6px;
+  padding: 12px 8px;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s;
@@ -146,5 +179,31 @@ const selectAccount = (accountId: number) => {
   max-width: 100%;
   width: 100%;
   line-height: 1.3;
+}
+
+/* 展开/收起按钮 */
+.expand-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 8px;
+  color: #409eff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.expand-btn:hover {
+  color: #66b1ff;
+}
+
+.expand-btn .el-icon {
+  transition: transform 0.3s;
+}
+
+.expand-btn .el-icon.is-expanded {
+  transform: rotate(180deg);
 }
 </style>
