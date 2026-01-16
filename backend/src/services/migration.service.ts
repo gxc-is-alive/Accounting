@@ -7,7 +7,7 @@ import sequelize from "../config/database";
 import { QueryTypes } from "sequelize";
 
 // 当前数据库版本
-const CURRENT_VERSION = 11;
+const CURRENT_VERSION = 12;
 
 // 迁移定义
 interface Migration {
@@ -312,6 +312,58 @@ class MigrationService {
           await sequelize.query(`
             UPDATE accounts SET balance = 0 WHERE type = 'credit' AND balance > 0
           `);
+        },
+      },
+      {
+        version: 12,
+        name: "添加退款功能支持",
+        up: async () => {
+          // 1. 扩展 transactions 表的 type 枚举，添加 'refund' 类型
+          await sequelize.query(`
+            ALTER TABLE transactions MODIFY COLUMN type 
+            ENUM('income', 'expense', 'repayment', 'refund') NOT NULL
+          `);
+
+          // 2. 添加原交易关联字段
+          if (
+            !(await this.columnExists(
+              "transactions",
+              "original_transaction_id"
+            ))
+          ) {
+            await sequelize.query(`
+              ALTER TABLE transactions 
+              ADD COLUMN original_transaction_id INT UNSIGNED DEFAULT NULL 
+              COMMENT '退款关联的原始交易ID'
+            `);
+
+            // 3. 添加外键约束，设置级联删除
+            await sequelize.query(`
+              ALTER TABLE transactions 
+              ADD CONSTRAINT fk_original_transaction 
+              FOREIGN KEY (original_transaction_id) 
+              REFERENCES transactions(id) 
+              ON DELETE CASCADE
+            `);
+
+            // 4. 添加索引优化查询
+            await sequelize.query(`
+              ALTER TABLE transactions 
+              ADD INDEX idx_original_transaction (original_transaction_id)
+            `);
+          }
+
+          // 5. 添加退款分类（如果不存在）
+          const [existing] = await sequelize.query(
+            "SELECT id FROM categories WHERE name = '退款' AND is_system = TRUE",
+            { type: QueryTypes.SELECT }
+          );
+          if (!existing) {
+            await sequelize.query(`
+              INSERT INTO categories (name, type, icon, is_system, sort_order)
+              VALUES ('退款', 'income', 'refund', TRUE, 11)
+            `);
+          }
         },
       },
     ];
