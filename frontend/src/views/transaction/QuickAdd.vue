@@ -50,21 +50,10 @@
       </div>
 
       <!-- 分类选择 -->
-      <div class="category-section">
-        <div class="section-title">选择分类</div>
-        <div class="category-grid">
-          <div
-            v-for="cat in currentCategories"
-            :key="cat.id"
-            class="category-item"
-            :class="{ active: form.categoryId === cat.id }"
-            @click="form.categoryId = cat.id"
-          >
-            <el-icon><component :is="getIconComponent(cat.icon)" /></el-icon>
-            <span>{{ cat.name }}</span>
-          </div>
-        </div>
-      </div>
+      <CategoryCardSelector
+        v-model="form.categoryId"
+        :categories="currentCategories"
+      />
 
       <!-- 账户选择 -->
       <AccountCardSelector
@@ -131,11 +120,13 @@ import { useCategoryStore } from '@/stores/category';
 import { useTransactionStore } from '@/stores/transaction';
 import { useDevice } from '@/composables/useDevice';
 import { useAccountUsage } from '@/composables/useAccountUsage';
+import { useCategoryUsage } from '@/composables/useCategoryUsage';
 import { getIconComponent } from '@/utils/iconMap';
 import { aiApi, attachmentApi } from '@/api';
 import type { TransactionType, Attachment } from '@/types';
 import AttachmentUpload from '@/components/attachment/AttachmentUpload.vue';
 import AccountCardSelector from '@/components/account/AccountCardSelector.vue';
+import CategoryCardSelector from '@/components/category/CategoryCardSelector.vue';
 
 const router = useRouter();
 const { device } = useDevice();
@@ -144,7 +135,8 @@ const isMobile = computed(() => device.value.isMobile);
 const accountStore = useAccountStore();
 const categoryStore = useCategoryStore();
 const transactionStore = useTransactionStore();
-const { getSortedAccounts, recordUsage } = useAccountUsage();
+const { getSortedAccounts, recordUsage: recordAccountUsage } = useAccountUsage();
+const { recordUsage: recordCategoryUsage } = useCategoryUsage();
 
 const accounts = computed(() => accountStore.accounts);
 const sortedAccounts = computed(() => getSortedAccounts(accounts.value));
@@ -245,7 +237,12 @@ const handleSubmit = async () => {
     
     // 记录账户使用（用于智能排序）
     if (form.accountId) {
-      recordUsage(form.accountId);
+      recordAccountUsage(form.accountId);
+    }
+    
+    // 记录分类使用（用于智能排序）
+    if (form.categoryId) {
+      recordCategoryUsage(form.categoryId);
     }
     
     // 关联附件到交易
@@ -407,62 +404,6 @@ onMounted(async () => {
 
 .quick-add-page--mobile .ai-input-section {
   margin-bottom: var(--spacing-md);
-}
-
-.category-section {
-  margin-bottom: 24px;
-}
-
-.quick-add-page--mobile .category-section {
-  margin-bottom: var(--spacing-md);
-}
-
-.section-title {
-  font-size: 14px;
-  color: #909399;
-  margin-bottom: 12px;
-}
-
-.category-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 12px;
-}
-
-/* 移动端分类网格改为4列 */
-.quick-add-page--mobile .category-grid {
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--spacing-sm);
-}
-
-.category-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 12px 8px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s;
-  background: #f5f7fa;
-  min-height: var(--touch-target-min);
-}
-
-.category-item:hover {
-  background: #e6f7ff;
-}
-
-.category-item:active {
-  transform: scale(0.95);
-}
-
-.category-item.active {
-  background: #409eff;
-  color: #fff;
-}
-
-.category-item span {
-  font-size: 12px;
-  margin-top: 4px;
 }
 
 .form-section {
