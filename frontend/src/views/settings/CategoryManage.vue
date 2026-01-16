@@ -178,28 +178,38 @@ const handleEdit = (category: Category) => {
 };
 
 const handleSubmit = async () => {
-  if (!formRef.value) return;
-  
-  await formRef.value.validate(async (valid) => {
-    if (!valid) return;
-    
-    submitting.value = true;
-    try {
-      if (isEdit.value && editId.value) {
-        await categoryStore.updateCategory(editId.value, { name: form.name });
-        ElMessage.success('更新成功');
-      } else {
-        await categoryStore.createCategory({ name: form.name, type: form.type });
-        ElMessage.success('添加成功');
-      }
-      dialogVisible.value = false;
-    } catch (error: unknown) {
-      const err = error as { message?: string };
-      ElMessage.error(err.message || '操作失败');
-    } finally {
-      submitting.value = false;
+  // 移动端没有 formRef，需要手动验证
+  if (isMobile.value) {
+    if (!form.name.trim()) {
+      ElMessage.error('请输入分类名称');
+      return;
     }
-  });
+  } else {
+    // 桌面端使用 el-form 验证
+    if (!formRef.value) return;
+    try {
+      await formRef.value.validate();
+    } catch {
+      return;
+    }
+  }
+  
+  submitting.value = true;
+  try {
+    if (isEdit.value && editId.value) {
+      await categoryStore.updateCategory(editId.value, { name: form.name });
+      ElMessage.success('更新成功');
+    } else {
+      await categoryStore.createCategory({ name: form.name, type: form.type });
+      ElMessage.success('添加成功');
+    }
+    dialogVisible.value = false;
+  } catch (error: unknown) {
+    const err = error as { message?: string };
+    ElMessage.error(err.message || '操作失败');
+  } finally {
+    submitting.value = false;
+  }
 };
 
 const handleDelete = async (category: Category) => {
