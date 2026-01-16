@@ -97,7 +97,7 @@
           size="large"
           :loading="submitting"
           :disabled="submitting"
-          style="width: 100%"
+          class="action-btn"
           @click="handleSubmit"
         >
           {{ isEdit ? '保存修改' : '添加账户' }}
@@ -108,7 +108,7 @@
           type="danger"
           size="large"
           plain
-          style="width: 100%; margin-top: 12px"
+          class="action-btn delete-btn"
           @click="handleDelete"
         >
           删除账户
@@ -361,6 +361,13 @@ onMounted(() => {
 .form-actions {
   margin-top: 24px;
   padding: 0 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.action-btn {
+  width: 100%;
 }
 
 :deep(.el-input__inner) {

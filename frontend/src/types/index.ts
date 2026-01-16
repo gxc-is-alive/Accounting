@@ -65,7 +65,7 @@ export interface CreditSummary {
 }
 
 // 交易类型
-export type TransactionType = "income" | "expense" | "repayment";
+export type TransactionType = "income" | "expense" | "repayment" | "refund";
 
 export interface Transaction {
   id: number;
@@ -80,6 +80,9 @@ export interface Transaction {
   isFamily: boolean;
   // 还款交易扩展字段
   sourceAccountId?: number;
+  // 退款交易扩展字段
+  originalTransactionId?: number;
+  originalTransaction?: Transaction;
   createdAt: string;
   updatedAt: string;
   // 关联数据
@@ -681,4 +684,36 @@ export interface BalanceAdjustmentFilters {
 export interface BalanceAdjustmentPaginatedResponse {
   records: BalanceAdjustmentRecord[];
   total: number;
+}
+
+// ========== 退款功能：类型定义 ==========
+
+// 创建退款参数
+export interface CreateRefundParams {
+  originalTransactionId: number;
+  amount: number;
+  date: string;
+  note?: string;
+}
+
+// 退款信息响应
+export interface RefundInfo {
+  originalTransaction: Transaction;
+  refundableAmount: number;
+  totalRefunded: number;
+  refunds: Transaction[];
+}
+
+// 可退款金额响应
+export interface RefundableAmountResponse {
+  originalAmount: number;
+  totalRefunded: number;
+  refundableAmount: number;
+}
+
+// 更新退款参数
+export interface UpdateRefundParams {
+  amount: number;
+  date?: string;
+  note?: string;
 }

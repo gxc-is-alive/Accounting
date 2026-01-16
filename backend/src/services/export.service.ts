@@ -53,7 +53,7 @@ export interface CategoryExportData {
 }
 
 export interface TransactionExportData {
-  type: "income" | "expense" | "repayment";
+  type: "income" | "expense" | "repayment" | "refund";
   amount: number;
   date: string;
   accountName: string;

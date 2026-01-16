@@ -28,6 +28,10 @@ import type {
   FamilyYearlyStats,
   FamilyTransaction,
   FamilyTransactionFilters,
+  CreateRefundParams,
+  RefundInfo,
+  RefundableAmountResponse,
+  UpdateRefundParams,
 } from "@/types";
 
 // 认证 API
@@ -94,6 +98,32 @@ export const repaymentApi = {
 
   getReminders: () =>
     request.get<ApiResponse<DueReminder[]>>("/repayments/reminders"),
+};
+
+// 退款 API
+export const refundApi = {
+  // 创建退款
+  create: (data: CreateRefundParams) =>
+    request.post<ApiResponse<Transaction>>("/refunds", data),
+
+  // 获取交易的退款信息（包括退款列表和可退款金额）
+  getTransactionRefunds: (transactionId: number) =>
+    request.get<ApiResponse<RefundInfo>>(
+      `/refunds/transaction/${transactionId}`
+    ),
+
+  // 获取交易的可退款金额
+  getRefundableAmount: (transactionId: number) =>
+    request.get<ApiResponse<RefundableAmountResponse>>(
+      `/refunds/transaction/${transactionId}/refundable`
+    ),
+
+  // 更新退款
+  update: (id: number, data: UpdateRefundParams) =>
+    request.put<ApiResponse<Transaction>>(`/refunds/${id}`, data),
+
+  // 删除退款
+  delete: (id: number) => request.delete<ApiResponse>(`/refunds/${id}`),
 };
 
 // 分类 API

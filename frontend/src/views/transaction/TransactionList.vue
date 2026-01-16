@@ -63,6 +63,7 @@
               <el-radio-button label="">全部</el-radio-button>
               <el-radio-button label="expense">支出</el-radio-button>
               <el-radio-button label="income">收入</el-radio-button>
+              <el-radio-button label="refund">退款</el-radio-button>
             </el-radio-group>
           </div>
           <div class="filter-item">
@@ -94,14 +95,14 @@
       <BottomSheet v-model:visible="showDetailSheet" title="交易详情">
         <div class="detail-content" v-if="selectedTransaction">
           <div class="detail-amount" :class="`detail-amount--${selectedTransaction.type}`">
-            {{ selectedTransaction.type === 'income' ? '+' : '-' }}¥{{ selectedTransaction.amount.toFixed(2) }}
+            {{ getAmountPrefix(selectedTransaction) }}¥{{ selectedTransaction.amount.toFixed(2) }}
           </div>
           <div class="detail-list">
             <div class="detail-item">
               <span class="detail-label">类型</span>
               <span class="detail-value">
-                <el-tag :type="selectedTransaction.type === 'income' ? 'success' : 'danger'" size="small">
-                  {{ selectedTransaction.type === 'income' ? '收入' : '支出' }}
+                <el-tag :type="getTypeTagType(selectedTransaction.type)" size="small">
+                  {{ getTypeLabel(selectedTransaction.type) }}
                 </el-tag>
               </span>
             </div>
@@ -120,6 +121,14 @@
             <div class="detail-item">
               <span class="detail-label">备注</span>
               <span class="detail-value">{{ selectedTransaction.note || '-' }}</span>
+            </div>
+            <!-- 退款交易显示原交易信息 -->
+            <div class="detail-item" v-if="selectedTransaction.type === 'refund' && selectedTransaction.originalTransaction">
+              <span class="detail-label">原交易</span>
+              <span class="detail-value">
+                {{ selectedTransaction.originalTransaction.category?.name || '-' }} - 
+                ¥{{ selectedTransaction.originalTransaction.amount?.toFixed(2) }}
+              </span>
             </div>
             <!-- 附件列表 -->
             <div class="detail-item detail-item--attachments" v-if="selectedTransaction.attachmentCount && selectedTransaction.attachmentCount > 0">
@@ -141,8 +150,34 @@
         </div>
         <template #footer>
           <div class="detail-actions">
+            <!-- 支出交易显示退款按钮 -->
+            <el-button 
+              v-if="selectedTransaction?.type === 'expense'" 
+              type="warning" 
+              @click="handleRefund(selectedTransaction!)"
+            >
+              退款
+            </el-button>
             <el-button @click="handleEdit(selectedTransaction!)">编辑</el-button>
             <el-button type="danger" @click="handleDelete(selectedTransaction!)">删除</el-button>
+          </div>
+        </template>
+      </BottomSheet>
+
+      <!-- 退款面板 -->
+      <BottomSheet v-model:visible="showRefundSheet" title="申请退款">
+        <RefundForm
+          v-if="refundTransaction"
+          ref="refundFormRef"
+          :transaction="refundTransaction"
+          @submit="submitRefund"
+        />
+        <template #footer>
+          <div class="detail-actions">
+            <el-button @click="showRefundSheet = false">取消</el-button>
+            <el-button type="primary" :loading="refundSubmitting" @click="confirmRefund">
+              确认退款
+            </el-button>
           </div>
         </template>
       </BottomSheet>
@@ -178,6 +213,7 @@
           >
             <el-option label="支出" value="expense" />
             <el-option label="收入" value="income" />
+            <el-option label="退款" value="refund" />
           </el-select>
           <el-select
             v-model="filters.categoryId"
@@ -305,8 +341,9 @@ import BottomSheet from '@/components/mobile/BottomSheet.vue';
 import TransactionCard from '@/components/mobile/TransactionCard.vue';
 import AttachmentList from '@/components/attachment/AttachmentList.vue';
 import AttachmentUpload from '@/components/attachment/AttachmentUpload.vue';
-import { attachmentApi } from '@/api';
-import type { Transaction, TransactionFilters, Attachment } from '@/types';
+import { RefundForm } from '@/components/refund';
+import { attachmentApi, refundApi } from '@/api';
+import type { Transaction, TransactionFilters, Attachment, CreateRefundParams } from '@/types';
 
 const { device } = useDevice();
 const isMobile = computed(() => device.value.isMobile);
@@ -352,6 +389,51 @@ const editForm = reactive({
 const editAttachments = ref<Attachment[]>([]);
 const loadingEditAttachments = ref(false);
 const submitting = ref(false);
+
+// 退款相关状态
+const showRefundSheet = ref(false);
+const refundTransaction = ref<Transaction | null>(null);
+const refundFormRef = ref<InstanceType<typeof RefundForm> | null>(null);
+const refundSubmitting = ref(false);
+
+// 类型相关辅助函数
+const getAmountPrefix = (transaction: Transaction) => {
+  switch (transaction.type) {
+    case 'income':
+    case 'refund':
+      return '+';
+    default:
+      return '-';
+  }
+};
+
+const getTypeTagType = (type: string) => {
+  switch (type) {
+    case 'income':
+      return 'success';
+    case 'expense':
+      return 'danger';
+    case 'refund':
+      return 'warning';
+    default:
+      return 'info';
+  }
+};
+
+const getTypeLabel = (type: string) => {
+  switch (type) {
+    case 'income':
+      return '收入';
+    case 'expense':
+      return '支出';
+    case 'refund':
+      return '退款';
+    case 'repayment':
+      return '还款';
+    default:
+      return type;
+  }
+};
 
 // 下拉刷新
 const onRefresh = async () => {
@@ -487,6 +569,38 @@ const handleDelete = async (row: Transaction) => {
     ElMessage.success('删除成功');
   } catch {
     // 取消删除
+  }
+};
+
+// 退款
+const handleRefund = (transaction: Transaction) => {
+  showDetailSheet.value = false;
+  refundTransaction.value = transaction;
+  showRefundSheet.value = true;
+};
+
+// 提交退款
+const submitRefund = async (data: CreateRefundParams) => {
+  refundSubmitting.value = true;
+  try {
+    await refundApi.create(data);
+    ElMessage.success('退款成功');
+    showRefundSheet.value = false;
+    refundTransaction.value = null;
+    // 刷新列表
+    await transactionStore.fetchTransactions({ ...filters, page: page.value, pageSize: pageSize.value });
+  } catch (error: unknown) {
+    const err = error as { response?: { data?: { message?: string } }, message?: string };
+    ElMessage.error(err.response?.data?.message || err.message || '退款失败');
+  } finally {
+    refundSubmitting.value = false;
+  }
+};
+
+// 确认退款（触发表单提交）
+const confirmRefund = async () => {
+  if (refundFormRef.value) {
+    await refundFormRef.value.submit();
   }
 };
 
@@ -641,6 +755,10 @@ onMounted(async () => {
 .no-attachments {
   color: var(--text-secondary);
   font-size: 14px;
+}
+
+.detail-amount--refund {
+  color: var(--color-warning);
 }
 
 /* 桌面端样式 */

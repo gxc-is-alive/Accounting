@@ -22,7 +22,7 @@ export type AccountType =
   | "other";
 
 // 交易类型枚举
-export type TransactionType = "income" | "expense" | "repayment";
+export type TransactionType = "income" | "expense" | "repayment" | "refund";
 
 // 分类类型枚举
 export type CategoryType = "income" | "expense";

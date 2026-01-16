@@ -36,6 +36,7 @@ interface TransactionFilter {
   endDate?: string;
   page?: number;
   pageSize?: number;
+  includeOriginalTransaction?: boolean;
 }
 
 class TransactionService {
@@ -139,6 +140,7 @@ class TransactionService {
       endDate,
       page = 1,
       pageSize = 20,
+      includeOriginalTransaction = true,
     } = filter;
 
     const where: WhereOptions = { userId };
@@ -165,20 +167,40 @@ class TransactionService {
       }
     }
 
+    // 构建 include 数组
+    const include: any[] = [
+      {
+        model: Account,
+        as: "account",
+        attributes: ["id", "name", "type", "icon"],
+      },
+      {
+        model: Category,
+        as: "category",
+        attributes: ["id", "name", "type", "icon"],
+      },
+    ];
+
+    // 如果需要包含原交易信息（用于退款交易）
+    if (includeOriginalTransaction) {
+      include.push({
+        model: Transaction,
+        as: "originalTransaction",
+        required: false,
+        attributes: ["id", "amount", "date", "note", "type"],
+        include: [
+          {
+            model: Category,
+            as: "category",
+            attributes: ["id", "name", "icon"],
+          },
+        ],
+      });
+    }
+
     const { count, rows } = await Transaction.findAndCountAll({
       where,
-      include: [
-        {
-          model: Account,
-          as: "account",
-          attributes: ["id", "name", "type", "icon"],
-        },
-        {
-          model: Category,
-          as: "category",
-          attributes: ["id", "name", "type", "icon"],
-        },
-      ],
+      include,
       order: [
         ["date", "DESC"],
         ["createdAt", "DESC"],

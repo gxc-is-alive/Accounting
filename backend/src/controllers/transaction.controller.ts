@@ -29,7 +29,7 @@ class TransactionController {
         familyId: familyId ? parseInt(familyId as string, 10) : undefined,
         accountId: accountId ? parseInt(accountId as string, 10) : undefined,
         categoryId: categoryId ? parseInt(categoryId as string, 10) : undefined,
-        type: type as "income" | "expense" | undefined,
+        type: type as "income" | "expense" | "refund" | undefined,
         startDate: startDate as string | undefined,
         endDate: endDate as string | undefined,
         page: page ? parseInt(page as string, 10) : 1,

@@ -2,7 +2,7 @@ import { Model, DataTypes, Optional } from "sequelize";
 import sequelize from "../config/database";
 
 // 交易类型
-export type TransactionType = "income" | "expense" | "repayment";
+export type TransactionType = "income" | "expense" | "repayment" | "refund";
 
 // 交易属性接口
 export interface TransactionAttributes {
@@ -18,6 +18,8 @@ export interface TransactionAttributes {
   isFamily: boolean;
   // 还款交易扩展字段
   sourceAccountId?: number | null; // 还款来源账户 ID
+  // 退款交易扩展字段
+  originalTransactionId?: number | null; // 退款关联的原始交易 ID
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -31,6 +33,7 @@ export interface TransactionCreationAttributes
     | "note"
     | "isFamily"
     | "sourceAccountId"
+    | "originalTransactionId"
     | "createdAt"
     | "updatedAt"
   > {}
@@ -51,6 +54,8 @@ class Transaction
   public isFamily!: boolean;
   // 还款交易扩展字段
   public sourceAccountId?: number | null;
+  // 退款交易扩展字段
+  public originalTransactionId?: number | null;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -83,7 +88,7 @@ Transaction.init(
       field: "category_id",
     },
     type: {
-      type: DataTypes.ENUM("income", "expense", "repayment"),
+      type: DataTypes.ENUM("income", "expense", "repayment", "refund"),
       allowNull: false,
     },
     amount: {
@@ -114,6 +119,12 @@ Transaction.init(
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: true,
       field: "source_account_id",
+    },
+    // 退款交易扩展字段
+    originalTransactionId: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: true,
+      field: "original_transaction_id",
     },
   },
   {

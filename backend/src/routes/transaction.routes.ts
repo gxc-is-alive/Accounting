@@ -14,7 +14,7 @@ router.get(
   [
     query("type")
       .optional()
-      .isIn(["income", "expense"])
+      .isIn(["income", "expense", "refund"])
       .withMessage("无效的交易类型"),
     query("startDate").optional().isISO8601().withMessage("无效的开始日期"),
     query("endDate").optional().isISO8601().withMessage("无效的结束日期"),
@@ -104,7 +104,7 @@ router.get(
       .withMessage("无效的分类ID"),
     query("type")
       .optional()
-      .isIn(["income", "expense"])
+      .isIn(["income", "expense", "refund"])
       .withMessage("无效的交易类型"),
     query("startDate").optional().isISO8601().withMessage("无效的开始日期"),
     query("endDate").optional().isISO8601().withMessage("无效的结束日期"),

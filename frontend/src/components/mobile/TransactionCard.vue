@@ -11,6 +11,10 @@
         <div class="transaction-card__main">
           <span class="transaction-card__category">
             {{ transaction.category?.name || '未分类' }}
+            <!-- 退款标识 -->
+            <el-tag v-if="transaction.type === 'refund'" type="warning" size="small" class="transaction-card__refund-tag">
+              退款
+            </el-tag>
             <!-- 附件图标 -->
             <span v-if="hasAttachments" class="transaction-card__attachment-icon" title="有附件">📎</span>
           </span>
@@ -18,11 +22,11 @@
             class="transaction-card__amount"
             :class="`transaction-card__amount--${transaction.type}`"
           >
-            {{ transaction.type === 'income' ? '+' : '-' }}¥{{ formatAmount(transaction.amount) }}
+            {{ amountPrefix }}¥{{ formatAmount(transaction.amount) }}
           </span>
         </div>
         <div class="transaction-card__sub">
-          <span class="transaction-card__note">{{ transaction.note || '-' }}</span>
+          <span class="transaction-card__note">{{ displayNote }}</span>
           <span class="transaction-card__date">{{ formatDate(transaction.date) }}</span>
         </div>
       </div>
@@ -53,6 +57,25 @@ const emit = defineEmits<{
   edit: [transaction: Transaction]
   delete: [transaction: Transaction]
 }>()
+
+// 金额前缀
+const amountPrefix = computed(() => {
+  switch (props.transaction.type) {
+    case 'income':
+    case 'refund':
+      return '+'
+    default:
+      return '-'
+  }
+})
+
+// 显示备注（退款交易显示原交易信息）
+const displayNote = computed(() => {
+  if (props.transaction.type === 'refund' && props.transaction.originalTransaction) {
+    return `退款自: ${props.transaction.originalTransaction.category?.name || '未知'}`
+  }
+  return props.transaction.note || '-'
+})
 
 // 右滑操作按钮
 const rightActions = computed<SwipeActionItem[]>(() => {
@@ -121,6 +144,11 @@ const formatDate = (date: string) => {
   color: var(--color-success);
 }
 
+.transaction-card__icon--refund {
+  background: rgba(230, 162, 60, 0.1);
+  color: var(--color-warning);
+}
+
 .transaction-card__content {
   flex: 1;
   min-width: 0;
@@ -151,6 +179,15 @@ const formatDate = (date: string) => {
 
 .transaction-card__amount--income {
   color: var(--color-success);
+}
+
+.transaction-card__amount--refund {
+  color: var(--color-warning);
+}
+
+.transaction-card__refund-tag {
+  margin-left: 4px;
+  vertical-align: middle;
 }
 
 .transaction-card__sub {

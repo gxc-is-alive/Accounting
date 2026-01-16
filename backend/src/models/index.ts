@@ -64,6 +64,16 @@ Attachment.belongsTo(Transaction, {
 User.hasMany(Attachment, { foreignKey: "userId", as: "attachments" });
 Attachment.belongsTo(User, { foreignKey: "userId", as: "user" });
 
+// 退款交易关联（自引用）
+Transaction.hasMany(Transaction, {
+  foreignKey: "originalTransactionId",
+  as: "refunds",
+});
+Transaction.belongsTo(Transaction, {
+  foreignKey: "originalTransactionId",
+  as: "originalTransaction",
+});
+
 // 估值记录关联（投资追踪）
 Account.hasMany(Valuation, { foreignKey: "accountId", as: "valuations" });
 Valuation.belongsTo(Account, { foreignKey: "accountId", as: "account" });

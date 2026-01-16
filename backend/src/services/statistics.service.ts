@@ -48,21 +48,29 @@ class StatisticsService {
 
     let income = 0;
     let expense = 0;
+    let refund = 0;
 
     for (const t of transactions) {
       if (t.type === "income") {
         income += t.amount;
-      } else {
+      } else if (t.type === "expense") {
         expense += t.amount;
+      } else if (t.type === "refund") {
+        refund += t.amount;
       }
     }
+
+    // 净支出 = 总支出 - 总退款
+    const netExpense = expense - refund;
 
     return {
       year,
       month: `${year}-${String(month).padStart(2, "0")}`,
       totalIncome: Math.round(income * 100) / 100,
       totalExpense: Math.round(expense * 100) / 100,
-      balance: Math.round((income - expense) * 100) / 100,
+      totalRefund: Math.round(refund * 100) / 100,
+      netExpense: Math.round(netExpense * 100) / 100,
+      balance: Math.round((income - netExpense) * 100) / 100,
       transactionCount: transactions.length,
       categoryBreakdown: [],
     };
@@ -75,6 +83,7 @@ class StatisticsService {
     startDate: string,
     endDate: string
   ) {
+    // 获取指定类型的交易
     const transactions = await Transaction.findAll({
       where: {
         userId,
@@ -90,9 +99,28 @@ class StatisticsService {
       ],
     });
 
+    // 如果是支出统计，还需要获取退款记录来扣除
+    let refundsByCategory = new Map<number, number>();
+    if (type === "expense") {
+      const refunds = await Transaction.findAll({
+        where: {
+          userId,
+          type: "refund",
+          date: { [Op.gte]: startDate, [Op.lte]: endDate },
+        },
+        attributes: ["categoryId", "amount"],
+      });
+
+      for (const r of refunds) {
+        const current = refundsByCategory.get(r.categoryId) || 0;
+        refundsByCategory.set(r.categoryId, current + r.amount);
+      }
+    }
+
     // 按分类汇总
     const categoryMap = new Map<number, CategoryStat>();
     let total = 0;
+    let totalRefund = 0;
 
     for (const t of transactions) {
       const cat = (t as any).category;
@@ -116,12 +144,26 @@ class StatisticsService {
       }
     }
 
+    // 如果是支出统计，从各分类中扣除退款金额
+    if (type === "expense") {
+      for (const [categoryId, refundAmount] of refundsByCategory) {
+        totalRefund += refundAmount;
+        if (categoryMap.has(categoryId)) {
+          const stat = categoryMap.get(categoryId)!;
+          stat.amount = Math.max(0, stat.amount - refundAmount);
+        }
+      }
+    }
+
+    // 计算净总额
+    const netTotal = type === "expense" ? total - totalRefund : total;
+
     // 计算百分比
     const stats: CategoryStat[] = [];
     for (const stat of categoryMap.values()) {
       stat.amount = Math.round(stat.amount * 100) / 100;
       stat.percentage =
-        total > 0 ? Math.round((stat.amount / total) * 10000) / 100 : 0;
+        netTotal > 0 ? Math.round((stat.amount / netTotal) * 10000) / 100 : 0;
       stats.push(stat);
     }
 
@@ -133,6 +175,8 @@ class StatisticsService {
       startDate,
       endDate,
       total: Math.round(total * 100) / 100,
+      totalRefund: type === "expense" ? Math.round(totalRefund * 100) / 100 : 0,
+      netTotal: Math.round(netTotal * 100) / 100,
       categories: stats,
     };
   }
