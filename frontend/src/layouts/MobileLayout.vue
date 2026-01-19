@@ -44,7 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from 'vue';
+import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ArrowLeft } from '@element-plus/icons-vue';
 import MobileHeader from '@/components/mobile/MobileHeader.vue';
@@ -109,46 +109,6 @@ const handleBack = () => {
     router.push('/');
   }
 };
-
-// 阻止下拉刷新
-let startY = 0;
-
-const handleTouchStart = (e: TouchEvent) => {
-  startY = e.touches[0].clientY;
-};
-
-const handleTouchMove = (e: TouchEvent) => {
-  const target = e.currentTarget as HTMLElement;
-  const scrollTop = target.scrollTop;
-  const deltaY = e.touches[0].clientY - startY;
-  
-  // 如果在顶部且向下滑动，阻止默认行为（下拉刷新）
-  if (scrollTop === 0 && deltaY > 0) {
-    e.preventDefault();
-  }
-  
-  // 如果在底部且向上滑动，阻止默认行为
-  const isAtBottom = scrollTop + target.clientHeight >= target.scrollHeight;
-  if (isAtBottom && deltaY < 0) {
-    e.preventDefault();
-  }
-};
-
-onMounted(() => {
-  const content = document.querySelector('.mobile-layout__content');
-  if (content) {
-    content.addEventListener('touchstart', handleTouchStart as any, { passive: false });
-    content.addEventListener('touchmove', handleTouchMove as any, { passive: false });
-  }
-});
-
-onUnmounted(() => {
-  const content = document.querySelector('.mobile-layout__content');
-  if (content) {
-    content.removeEventListener('touchstart', handleTouchStart as any);
-    content.removeEventListener('touchmove', handleTouchMove as any);
-  }
-});
 </script>
 
 <style scoped>
