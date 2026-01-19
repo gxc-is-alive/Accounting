@@ -127,18 +127,19 @@ const onTouchMove = (e: TouchEvent) => {
   const deltaX = touch.clientX - startX
   const deltaY = touch.clientY - startY
   
+  const absDeltaX = Math.abs(deltaX)
+  const absDeltaY = Math.abs(deltaY)
+  
   // 判断滑动方向（需要移动至少 10px 才判断）
   if (isVertical === null) {
-    const absDeltaX = Math.abs(deltaX)
-    const absDeltaY = Math.abs(deltaY)
-    
-    // 移动距离太小，不判断方向
+    // 移动距离太小，不判断方向，允许浏览器默认行为
     if (absDeltaX < 10 && absDeltaY < 10) {
       return
     }
     
     // 判断是垂直还是水平滑动
-    isVertical = absDeltaY > absDeltaX
+    // 只有当水平移动明显大于垂直移动时，才认为是水平滑动
+    isVertical = absDeltaY > absDeltaX * 0.5
   }
   
   // 垂直滑动时不处理，允许页面滚动
@@ -146,8 +147,10 @@ const onTouchMove = (e: TouchEvent) => {
     return
   }
   
-  // 水平滑动时阻止默认行为
-  e.preventDefault()
+  // 只有在水平移动距离足够大时才阻止默认行为
+  if (absDeltaX > 15) {
+    e.preventDefault()
+  }
   
   let newOffset = startOffset + deltaX
   
