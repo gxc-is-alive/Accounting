@@ -226,7 +226,7 @@ defineExpose({
   position: relative;
   z-index: 1;
   background-color: var(--bg-card);
-  transition: transform var(--transition-normal) ease;
+  transition: transform 0.3s ease;
   touch-action: pan-y;
 }
 
@@ -241,12 +241,10 @@ defineExpose({
 
 .swipe-action__left {
   left: 0;
-  transform: translateX(-100%);
 }
 
 .swipe-action__right {
   right: 0;
-  transform: translateX(100%);
 }
 
 .swipe-action__btn {
@@ -261,7 +259,7 @@ defineExpose({
   color: #fff;
   cursor: pointer;
   user-select: none;
-  transition: opacity var(--transition-fast);
+  transition: opacity 0.2s;
 }
 
 .swipe-action__btn:active {
@@ -270,6 +268,6 @@ defineExpose({
 
 .swipe-action__btn .el-icon {
   font-size: 20px;
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: 4px;
 }
 </style>
