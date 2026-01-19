@@ -227,7 +227,6 @@ defineExpose({
   z-index: 1;
   background-color: var(--bg-card);
   transition: transform 0.3s ease;
-  touch-action: pan-y;
 }
 
 .swipe-action__left,
