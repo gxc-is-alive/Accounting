@@ -1,9 +1,9 @@
 <template>
   <Teleport to="body">
     <Transition name="bottom-sheet">
-      <div v-if="visible" class="bottom-sheet" @click.self="onOverlayClick">
+      <div v-if="visible" class="bottom-sheet">
         <!-- 遮罩层 -->
-        <div class="bottom-sheet__overlay" />
+        <div class="bottom-sheet__overlay" @click="onOverlayClick" />
         
         <!-- 面板内容 -->
         <div
@@ -219,6 +219,7 @@ defineExpose({
 
 .bottom-sheet__panel {
   position: relative;
+  z-index: 1;
   background-color: var(--bg-card);
   max-height: 80vh;
   display: flex;

@@ -175,7 +175,12 @@
         <template #footer>
           <div class="detail-actions">
             <el-button @click="showRefundSheet = false">取消</el-button>
-            <el-button type="primary" :loading="refundSubmitting" @click="confirmRefund">
+            <el-button 
+              type="primary" 
+              :loading="refundSubmitting" 
+              :disabled="!refundDataLoaded"
+              @click="confirmRefund"
+            >
               确认退款
             </el-button>
           </div>
@@ -395,6 +400,7 @@ const showRefundSheet = ref(false);
 const refundTransaction = ref<Transaction | null>(null);
 const refundFormRef = ref<InstanceType<typeof RefundForm> | null>(null);
 const refundSubmitting = ref(false);
+const refundDataLoaded = computed(() => refundFormRef.value?.dataLoaded ?? false);
 
 // 类型相关辅助函数
 const getAmountPrefix = (transaction: Transaction) => {

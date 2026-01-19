@@ -41,12 +41,12 @@
         <el-input-number
           v-model="form.amount"
           :min="0.01"
-          :max="refundableAmount"
+          :max="refundableAmount || 999999"
           :precision="2"
           :step="1"
           style="width: 100%"
         />
-        <div class="quick-amount">
+        <div class="quick-amount" v-if="dataLoaded && refundableAmount > 0">
           <el-button size="small" text @click="form.amount = refundableAmount">
             全额退款
           </el-button>
@@ -90,7 +90,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { refundApi } from '@/api'
 import type { Transaction, CreateRefundParams } from '@/types'
@@ -110,6 +110,7 @@ const emit = defineEmits<{
 
 const formRef = ref<FormInstance>()
 const loading = ref(false)
+const dataLoaded = ref(false)
 const refundableAmount = ref(props.initialRefundableAmount)
 const refunds = ref<Transaction[]>([])
 
@@ -143,15 +144,15 @@ const rules: FormRules = {
 // 获取退款信息
 const fetchRefundInfo = async () => {
   loading.value = true
+  dataLoaded.value = false
   try {
-    const res = await refundApi.getTransactionRefunds(props.transaction.id)
-    if (res.data.success && res.data.data) {
-      refundableAmount.value = res.data.data.refundableAmount
-      refunds.value = res.data.data.refunds || []
+    const res = await refundApi.getTransactionRefunds(props.transaction.id) as unknown as { success: boolean; data: { refundableAmount: number; refunds: Transaction[] } }
+    if (res.success && res.data) {
+      refundableAmount.value = res.data.refundableAmount
+      refunds.value = res.data.refunds || []
       // 更新表单默认金额
-      if (form.amount === 0 || form.amount > refundableAmount.value) {
-        form.amount = refundableAmount.value
-      }
+      form.amount = refundableAmount.value
+      dataLoaded.value = true
     }
   } catch (error) {
     console.error('获取退款信息失败:', error)
@@ -190,7 +191,9 @@ onMounted(() => {
 // 暴露方法
 defineExpose({
   submit,
-  refresh: fetchRefundInfo
+  refresh: fetchRefundInfo,
+  loading,
+  dataLoaded
 })
 </script>
 

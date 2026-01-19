@@ -50,7 +50,7 @@ class RefundController {
 
   /**
    * 获取交易的退款信息
-   * GET /api/transactions/:id/refunds
+   * GET /api/refunds/transaction/:transactionId
    */
   async getTransactionRefunds(
     req: AuthRequest,
@@ -58,19 +58,24 @@ class RefundController {
     next: NextFunction
   ) {
     try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return error(
+          res,
+          errors.array()[0].msg,
+          ErrorCode.VALIDATION_ERROR,
+          400
+        );
+      }
+
       if (!req.user) {
         throw new AppError("未授权", 401, ErrorCode.UNAUTHORIZED);
       }
 
-      const { id } = req.params;
-      const transactionId = parseInt(id, 10);
-
-      if (isNaN(transactionId)) {
-        return error(res, "无效的交易 ID", ErrorCode.VALIDATION_ERROR, 400);
-      }
+      const { transactionId } = req.params;
 
       const refundInfo = await refundService.getRefundInfo(
-        transactionId,
+        parseInt(transactionId, 10),
         req.user.id
       );
 
@@ -82,7 +87,7 @@ class RefundController {
 
   /**
    * 获取可退款金额
-   * GET /api/transactions/:id/refundable
+   * GET /api/refunds/transaction/:transactionId/refundable
    */
   async getRefundableAmount(
     req: AuthRequest,
@@ -90,19 +95,24 @@ class RefundController {
     next: NextFunction
   ) {
     try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return error(
+          res,
+          errors.array()[0].msg,
+          ErrorCode.VALIDATION_ERROR,
+          400
+        );
+      }
+
       if (!req.user) {
         throw new AppError("未授权", 401, ErrorCode.UNAUTHORIZED);
       }
 
-      const { id } = req.params;
-      const transactionId = parseInt(id, 10);
-
-      if (isNaN(transactionId)) {
-        return error(res, "无效的交易 ID", ErrorCode.VALIDATION_ERROR, 400);
-      }
+      const { transactionId } = req.params;
 
       const refundableAmount = await refundService.calculateRefundableAmount(
-        transactionId,
+        parseInt(transactionId, 10),
         req.user.id
       );
 
