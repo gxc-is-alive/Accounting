@@ -113,7 +113,7 @@ const handleBack = () => {
 
 <style scoped>
 .mobile-layout {
-  min-height: 100vh;
+  height: 100vh;
   background: var(--bg-page, #f5f7fa);
   display: flex;
   flex-direction: column;
