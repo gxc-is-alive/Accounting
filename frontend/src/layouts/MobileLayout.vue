@@ -115,10 +115,15 @@ const handleBack = () => {
 .mobile-layout {
   min-height: 100vh;
   background: var(--bg-page, #f5f7fa);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .mobile-layout__content {
-  min-height: 100vh;
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding: var(--spacing-md, 16px);
   box-sizing: border-box;
 }
