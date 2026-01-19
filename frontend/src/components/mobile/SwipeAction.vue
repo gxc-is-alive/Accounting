@@ -139,18 +139,17 @@ const onTouchMove = (e: TouchEvent) => {
     
     // 判断是垂直还是水平滑动
     // 只有当水平移动明显大于垂直移动时，才认为是水平滑动
-    isVertical = absDeltaY > absDeltaX * 0.5
+    isVertical = absDeltaY > absDeltaX
   }
   
   // 垂直滑动时不处理，允许页面滚动
   if (isVertical) {
+    isDragging = false // 停止拖拽，让页面滚动
     return
   }
   
-  // 只有在水平移动距离足够大时才阻止默认行为
-  if (absDeltaX > 15) {
-    e.preventDefault()
-  }
+  // 确认是水平滑动后才阻止默认行为
+  e.preventDefault()
   
   let newOffset = startOffset + deltaX
   
