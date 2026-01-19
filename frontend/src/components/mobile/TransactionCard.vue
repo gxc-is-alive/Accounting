@@ -30,6 +30,23 @@
           <span class="transaction-card__date">{{ formatDate(transaction.date) }}</span>
         </div>
       </div>
+      <!-- 操作按钮区域 -->
+      <div v-if="showActions" class="transaction-card__actions">
+        <button
+          class="transaction-card__action-btn transaction-card__action-btn--edit"
+          @click.stop="emit('edit', transaction)"
+          aria-label="编辑"
+        >
+          <el-icon :size="20"><Edit /></el-icon>
+        </button>
+        <button
+          class="transaction-card__action-btn transaction-card__action-btn--delete"
+          @click.stop="emit('delete', transaction)"
+          aria-label="删除"
+        >
+          <el-icon :size="20"><Delete /></el-icon>
+        </button>
+      </div>
     </div>
   </SwipeAction>
 </template>
@@ -215,5 +232,89 @@ const formatDate = (date: string) => {
 .transaction-card__attachment-icon {
   margin-left: 4px;
   font-size: 12px;
+}
+
+/* 操作按钮区域 */
+.transaction-card__actions {
+  display: flex;
+  gap: 8px;
+  margin-left: var(--spacing-sm);
+  flex-shrink: 0;
+}
+
+.transaction-card__action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.transaction-card__action-btn:active {
+  transform: scale(0.95);
+}
+
+.transaction-card__action-btn--edit {
+  color: var(--color-primary, #409eff);
+}
+
+.transaction-card__action-btn--edit:hover {
+  background: rgba(64, 158, 255, 0.1);
+}
+
+.transaction-card__action-btn--edit:active {
+  background: rgba(64, 158, 255, 0.2);
+}
+
+.transaction-card__action-btn--delete {
+  color: var(--color-danger, #f56c6c);
+}
+
+.transaction-card__action-btn--delete:hover {
+  background: rgba(245, 108, 108, 0.1);
+}
+
+.transaction-card__action-btn--delete:active {
+  background: rgba(245, 108, 108, 0.2);
+}
+
+/* 确保触摸设备上有足够的点击区域 */
+@media (hover: none) {
+  .transaction-card__action-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* 小屏幕优化 */
+@media (max-width: 360px) {
+  .transaction-card {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+  
+  .transaction-card__actions {
+    gap: 4px;
+    margin-left: 4px;
+  }
+  
+  .transaction-card__action-btn {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .transaction-card__category {
+    font-size: 14px;
+  }
+  
+  .transaction-card__amount {
+    font-size: 15px;
+  }
 }
 </style>

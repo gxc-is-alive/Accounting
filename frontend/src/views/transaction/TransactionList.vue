@@ -21,6 +21,7 @@
               v-for="item in transactions"
               :key="item.id"
               :transaction="item"
+              :has-attachments="!!(item.attachmentCount && item.attachmentCount > 0)"
               @click="handleCardClick"
               @edit="handleEdit"
               @delete="handleDelete"
