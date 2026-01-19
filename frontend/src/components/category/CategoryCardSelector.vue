@@ -56,8 +56,8 @@ const { getSortedCategories } = useCategoryUsage();
 // 展开状态
 const isExpanded = ref(false);
 
-// 默认显示数量：移动端8个（2行x4列），PC端10个（2行x5列）
-const defaultVisibleCount = computed(() => isMobile.value ? 8 : 10);
+// 默认显示数量：移动端4个（2行x2列），PC端6个（2行x3列）
+const defaultVisibleCount = computed(() => isMobile.value ? 4 : 6);
 
 // 排序后的分类列表（最近使用的在前面）
 const sortedCategories = computed(() => getSortedCategories(props.categories));
@@ -109,17 +109,17 @@ watch(() => props.categories, () => {
   border-radius: 8px;
 }
 
-/* PC端：每行5个 */
+/* PC端：每行3个 */
 .category-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
   width: 100%;
 }
 
-/* 移动端：每行4个 */
+/* 移动端：每行2个 */
 .category-grid--mobile {
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--spacing-sm, 8px);
 }
 
