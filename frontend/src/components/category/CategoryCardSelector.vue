@@ -5,7 +5,22 @@
       暂无分类
     </div>
     <template v-else>
-      <div class="category-grid" :class="{ 'category-grid--mobile': isMobile }">
+      <!-- 搜索框 -->
+      <el-input
+        v-model="searchQuery"
+        placeholder="搜索分类..."
+        clearable
+        class="search-input"
+      >
+        <template #prefix>
+          <el-icon><Search /></el-icon>
+        </template>
+      </el-input>
+      <!-- 空搜索结果提示 -->
+      <div v-if="filteredCategories.length === 0 && searchQuery.trim()" class="empty-tip">
+        未找到匹配的分类
+      </div>
+      <div v-else class="category-grid" :class="{ 'category-grid--mobile': isMobile }">
         <div
           v-for="cat in displayedCategories"
           :key="cat.id"
@@ -19,8 +34,8 @@
         </div>
       </div>
       <!-- 展开/收起按钮 -->
-      <div v-if="hasMore" class="expand-btn" @click="toggleExpand">
-        <span>{{ isExpanded ? '收起' : `展开全部 (${sortedCategories.length})` }}</span>
+      <div v-if="hasMore && filteredCategories.length > 0" class="expand-btn" @click="toggleExpand">
+        <span>{{ isExpanded ? '收起' : `展开全部 (${filteredCategories.length})` }}</span>
         <el-icon :class="{ 'is-expanded': isExpanded }">
           <ArrowDown />
         </el-icon>
@@ -31,7 +46,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { ArrowDown } from '@element-plus/icons-vue';
+import { ArrowDown, Search } from '@element-plus/icons-vue';
 import type { Category } from '@/types';
 import { getIconComponent } from '@/utils/iconMap';
 import { useDevice } from '@/composables/useDevice';
@@ -53,6 +68,9 @@ const { device } = useDevice();
 const isMobile = computed(() => device.value.isMobile);
 const { getSortedCategories } = useCategoryUsage();
 
+// 搜索关键词
+const searchQuery = ref('');
+
 // 展开状态
 const isExpanded = ref(false);
 
@@ -62,15 +80,26 @@ const defaultVisibleCount = computed(() => isMobile.value ? 4 : 6);
 // 排序后的分类列表（最近使用的在前面）
 const sortedCategories = computed(() => getSortedCategories(props.categories));
 
+// 搜索过滤后的分类列表
+const filteredCategories = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return sortedCategories.value;
+  }
+  const query = searchQuery.value.toLowerCase();
+  return sortedCategories.value.filter((category) =>
+    category.name.toLowerCase().includes(query)
+  );
+});
+
 // 是否有更多分类需要展开
-const hasMore = computed(() => sortedCategories.value.length > defaultVisibleCount.value);
+const hasMore = computed(() => filteredCategories.value.length > defaultVisibleCount.value);
 
 // 当前显示的分类列表
 const displayedCategories = computed(() => {
   if (isExpanded.value || !hasMore.value) {
-    return sortedCategories.value;
+    return filteredCategories.value;
   }
-  return sortedCategories.value.slice(0, defaultVisibleCount.value);
+  return filteredCategories.value.slice(0, defaultVisibleCount.value);
 });
 
 const selectCategory = (categoryId: number) => {
@@ -98,6 +127,10 @@ watch(() => props.categories, () => {
 .section-title {
   font-size: 14px;
   color: #909399;
+  margin-bottom: 12px;
+}
+
+.search-input {
   margin-bottom: 12px;
 }
 

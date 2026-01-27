@@ -5,7 +5,22 @@
       暂无账户，请先创建账户
     </div>
     <template v-else>
-      <div class="account-grid" :class="{ 'account-grid--mobile': isMobile }">
+      <!-- 搜索框 -->
+      <el-input
+        v-model="searchQuery"
+        placeholder="搜索账户..."
+        clearable
+        class="search-input"
+      >
+        <template #prefix>
+          <el-icon><Search /></el-icon>
+        </template>
+      </el-input>
+      <!-- 空搜索结果提示 -->
+      <div v-if="filteredAccounts.length === 0 && searchQuery.trim()" class="empty-tip">
+        未找到匹配的账户
+      </div>
+      <div v-else class="account-grid" :class="{ 'account-grid--mobile': isMobile }">
         <div
           v-for="account in displayedAccounts"
           :key="account.id"
@@ -20,8 +35,8 @@
         </div>
       </div>
       <!-- 展开/收起按钮 -->
-      <div v-if="hasMore" class="expand-btn" @click="toggleExpand">
-        <span>{{ isExpanded ? '收起' : `展开全部 (${sortedAccounts.length})` }}</span>
+      <div v-if="hasMore && filteredAccounts.length > 0" class="expand-btn" @click="toggleExpand">
+        <span>{{ isExpanded ? '收起' : `展开全部 (${filteredAccounts.length})` }}</span>
         <el-icon :class="{ 'is-expanded': isExpanded }">
           <ArrowDown />
         </el-icon>
@@ -32,7 +47,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { ArrowDown } from '@element-plus/icons-vue';
+import { ArrowDown, Search } from '@element-plus/icons-vue';
 import type { Account } from '@/types';
 import { getAccountIcon } from '@/utils/iconMap';
 import { useDevice } from '@/composables/useDevice';
@@ -51,6 +66,9 @@ const emit = defineEmits<Emits>();
 
 const { device } = useDevice();
 const isMobile = computed(() => device.value.isMobile);
+
+// 搜索关键词
+const searchQuery = ref('');
 
 // 展开状态
 const isExpanded = ref(false);
@@ -76,15 +94,26 @@ const getAccountTypeName = (type: string): string => {
 // 直接使用传入的账户列表（排序由父组件处理）
 const sortedAccounts = computed(() => props.accounts);
 
+// 搜索过滤后的账户列表
+const filteredAccounts = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return sortedAccounts.value;
+  }
+  const query = searchQuery.value.toLowerCase();
+  return sortedAccounts.value.filter((account) =>
+    account.name.toLowerCase().includes(query)
+  );
+});
+
 // 是否有更多账户需要展开
-const hasMore = computed(() => sortedAccounts.value.length > defaultVisibleCount.value);
+const hasMore = computed(() => filteredAccounts.value.length > defaultVisibleCount.value);
 
 // 当前显示的账户列表
 const displayedAccounts = computed(() => {
   if (isExpanded.value || !hasMore.value) {
-    return sortedAccounts.value;
+    return filteredAccounts.value;
   }
-  return sortedAccounts.value.slice(0, defaultVisibleCount.value);
+  return filteredAccounts.value.slice(0, defaultVisibleCount.value);
 });
 
 const selectAccount = (accountId: number) => {
@@ -107,6 +136,10 @@ const toggleExpand = () => {
 .section-title {
   font-size: 14px;
   color: #909399;
+  margin-bottom: 12px;
+}
+
+.search-input {
   margin-bottom: 12px;
 }
 

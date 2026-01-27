@@ -29,15 +29,15 @@
           </div>
           <el-empty v-else description="暂无交易记录" />
 
-          <!-- 加载更多 -->
-          <div class="load-more" v-if="hasMore">
-            <el-button
-              :loading="loadingMore"
-              text
-              @click="loadMore"
-            >
-              加载更多
-            </el-button>
+          <!-- 底部加载状态 -->
+          <div class="load-more-sentinel" ref="loadMoreSentinel">
+            <div v-if="loadingMore" class="loading-indicator">
+              <el-icon class="is-loading"><Loading /></el-icon>
+              <span>加载中...</span>
+            </div>
+            <div v-else-if="!hasMore && transactions.length > 0" class="no-more">
+              没有更多了
+            </div>
           </div>
         </div>
       </PullRefresh>
@@ -265,13 +265,22 @@
               </span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="120" fixed="right">
+          <el-table-column label="操作" width="180" fixed="right">
             <template #default="{ row }">
               <el-button type="primary" link size="small" @click="handleEdit(row)">
                 编辑
               </el-button>
               <el-button type="danger" link size="small" @click="handleDelete(row)">
                 删除
+              </el-button>
+              <el-button 
+                v-if="row.type === 'expense'" 
+                type="warning" 
+                link 
+                size="small" 
+                @click="handleRefundDesktop(row)"
+              >
+                退款
               </el-button>
             </template>
           </el-table-column>
@@ -306,6 +315,12 @@
             />
           </el-select>
         </el-form-item>
+        <el-form-item label="账户">
+          <AccountCardSelector
+            v-model="editForm.accountId"
+            :accounts="accounts"
+          />
+        </el-form-item>
         <el-form-item label="日期">
           <el-date-picker
             v-model="editForm.date"
@@ -327,26 +342,62 @@
       </el-form>
       <template #footer>
         <el-button @click="editDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" :disabled="submitting" @click="submitEdit">
+        <el-button 
+          type="primary" 
+          :loading="submitting" 
+          :disabled="submitting || !editForm.accountId || accounts.length === 0" 
+          @click="submitEdit"
+        >
           保存
         </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 退款对话框（桌面端） -->
+    <el-dialog
+      v-model="refundDialogVisible"
+      title="申请退款"
+      width="600px"
+      :close-on-click-modal="true"
+      :close-on-press-escape="true"
+    >
+      <RefundForm
+        v-if="refundTransactionDesktop"
+        ref="refundFormRefDesktop"
+        :transaction="refundTransactionDesktop"
+        @submit="submitRefundDesktop"
+      />
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="refundDialogVisible = false">取消</el-button>
+          <el-button
+            type="primary"
+            :loading="refundSubmittingDesktop"
+            :disabled="!refundDataLoadedDesktop"
+            @click="confirmRefundDesktop"
+          >
+            确认退款
+          </el-button>
+        </div>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Filter, Loading } from '@element-plus/icons-vue';
 import { useTransactionStore } from '@/stores/transaction';
 import { useCategoryStore } from '@/stores/category';
+import { useAccountStore } from '@/stores/account';
 import { useDevice } from '@/composables/useDevice';
 import PullRefresh from '@/components/mobile/PullRefresh.vue';
 import BottomSheet from '@/components/mobile/BottomSheet.vue';
 import TransactionCard from '@/components/mobile/TransactionCard.vue';
 import AttachmentList from '@/components/attachment/AttachmentList.vue';
 import AttachmentUpload from '@/components/attachment/AttachmentUpload.vue';
+import AccountCardSelector from '@/components/account/AccountCardSelector.vue';
 import { RefundForm } from '@/components/refund';
 import { attachmentApi, refundApi } from '@/api';
 import type { Transaction, TransactionFilters, Attachment, CreateRefundParams } from '@/types';
@@ -356,11 +407,13 @@ const isMobile = computed(() => device.value.isMobile);
 
 const transactionStore = useTransactionStore();
 const categoryStore = useCategoryStore();
+const accountStore = useAccountStore();
 
 const transactions = computed(() => transactionStore.transactions);
 const total = computed(() => transactionStore.total);
 const loading = computed(() => transactionStore.loading);
 const categories = computed(() => categoryStore.categories);
+const accounts = computed(() => accountStore.accounts);
 
 const page = ref(1);
 const pageSize = ref(20);
@@ -375,6 +428,8 @@ const showDetailSheet = ref(false);
 const selectedTransaction = ref<Transaction | null>(null);
 const selectedAttachments = ref<Attachment[]>([]);
 const loadingAttachments = ref(false);
+const loadMoreSentinel = ref<HTMLElement | null>(null);
+let intersectionObserver: IntersectionObserver | null = null;
 
 const hasFilters = computed(() => {
   return dateRange.value || filters.type || filters.categoryId;
@@ -389,19 +444,28 @@ const editForm = reactive({
   id: 0,
   amount: 0,
   categoryId: null as number | null,
+  accountId: null as number | null,
   date: '',
   note: '',
 });
+const originalAccountId = ref<number | null>(null);
 const editAttachments = ref<Attachment[]>([]);
 const loadingEditAttachments = ref(false);
 const submitting = ref(false);
 
-// 退款相关状态
+// 退款相关状态（移动端）
 const showRefundSheet = ref(false);
 const refundTransaction = ref<Transaction | null>(null);
 const refundFormRef = ref<InstanceType<typeof RefundForm> | null>(null);
 const refundSubmitting = ref(false);
 const refundDataLoaded = computed(() => refundFormRef.value?.dataLoaded ?? false);
+
+// 退款相关状态（桌面端）
+const refundDialogVisible = ref(false);
+const refundTransactionDesktop = ref<Transaction | null>(null);
+const refundFormRefDesktop = ref<InstanceType<typeof RefundForm> | null>(null);
+const refundSubmittingDesktop = ref(false);
+const refundDataLoadedDesktop = computed(() => refundFormRefDesktop.value?.dataLoaded ?? false);
 
 // 类型相关辅助函数
 const getAmountPrefix = (transaction: Transaction) => {
@@ -466,6 +530,44 @@ const loadMore = async () => {
   }
 };
 
+// 初始化 IntersectionObserver 用于无限滚动
+const initIntersectionObserver = () => {
+  if (!isMobile.value || intersectionObserver) return;
+  
+  intersectionObserver = new IntersectionObserver(
+    (entries) => {
+      const entry = entries[0];
+      if (entry.isIntersecting && hasMore.value && !loadingMore.value) {
+        loadMore();
+      }
+    },
+    {
+      rootMargin: '100px',
+      threshold: 0.1,
+    }
+  );
+  
+  if (loadMoreSentinel.value) {
+    intersectionObserver.observe(loadMoreSentinel.value);
+  }
+};
+
+// 清理 IntersectionObserver
+const cleanupIntersectionObserver = () => {
+  if (intersectionObserver) {
+    intersectionObserver.disconnect();
+    intersectionObserver = null;
+  }
+};
+
+// 监听 sentinel 元素变化
+watch(loadMoreSentinel, (newVal) => {
+  if (newVal && isMobile.value) {
+    cleanupIntersectionObserver();
+    initIntersectionObserver();
+  }
+});
+
 // 点击卡片显示详情
 const handleCardClick = async (transaction: Transaction) => {
   selectedTransaction.value = transaction;
@@ -526,6 +628,8 @@ const handleEdit = async (row: Transaction) => {
   editForm.id = row.id;
   editForm.amount = row.amount;
   editForm.categoryId = row.categoryId;
+  editForm.accountId = row.accountId;
+  originalAccountId.value = row.accountId;
   editForm.date = row.date;
   editForm.note = row.note || '';
   editAttachments.value = [];
@@ -552,10 +656,18 @@ const submitEdit = async () => {
     await transactionStore.updateTransaction(editForm.id, {
       amount: editForm.amount,
       categoryId: editForm.categoryId!,
+      accountId: editForm.accountId!,
       date: editForm.date,
       note: editForm.note,
     });
-    ElMessage.success('更新成功');
+    
+    // 如果账户发生变更，显示特殊提示
+    if (originalAccountId.value !== editForm.accountId) {
+      ElMessage.success('更新成功，账户余额已调整');
+    } else {
+      ElMessage.success('更新成功');
+    }
+    
     editDialogVisible.value = false;
   } catch (error: unknown) {
     const err = error as { message?: string };
@@ -579,14 +691,20 @@ const handleDelete = async (row: Transaction) => {
   }
 };
 
-// 退款
+// 退款（移动端）
 const handleRefund = (transaction: Transaction) => {
   showDetailSheet.value = false;
   refundTransaction.value = transaction;
   showRefundSheet.value = true;
 };
 
-// 提交退款
+// 退款（桌面端）
+const handleRefundDesktop = (transaction: Transaction) => {
+  refundTransactionDesktop.value = transaction;
+  refundDialogVisible.value = true;
+};
+
+// 提交退款（移动端）
 const submitRefund = async (data: CreateRefundParams) => {
   refundSubmitting.value = true;
   try {
@@ -604,10 +722,35 @@ const submitRefund = async (data: CreateRefundParams) => {
   }
 };
 
-// 确认退款（触发表单提交）
+// 提交退款（桌面端）
+const submitRefundDesktop = async (data: CreateRefundParams) => {
+  refundSubmittingDesktop.value = true;
+  try {
+    await refundApi.create(data);
+    ElMessage.success('退款成功');
+    refundDialogVisible.value = false;
+    refundTransactionDesktop.value = null;
+    // 刷新列表
+    await transactionStore.fetchTransactions({ ...filters, page: page.value, pageSize: pageSize.value });
+  } catch (error: unknown) {
+    const err = error as { response?: { data?: { message?: string } }, message?: string };
+    ElMessage.error(err.response?.data?.message || err.message || '退款失败');
+  } finally {
+    refundSubmittingDesktop.value = false;
+  }
+};
+
+// 确认退款（移动端）
 const confirmRefund = async () => {
   if (refundFormRef.value) {
     await refundFormRef.value.submit();
+  }
+};
+
+// 确认退款（桌面端）
+const confirmRefundDesktop = async () => {
+  if (refundFormRefDesktop.value) {
+    await refundFormRefDesktop.value.submit();
   }
 };
 
@@ -615,7 +758,17 @@ onMounted(async () => {
   await Promise.all([
     transactionStore.fetchTransactions(),
     categoryStore.fetchCategories(),
+    accountStore.fetchAccounts(),
   ]);
+  
+  // 初始化无限滚动
+  nextTick(() => {
+    initIntersectionObserver();
+  });
+});
+
+onUnmounted(() => {
+  cleanupIntersectionObserver();
 });
 </script>
 
@@ -655,10 +808,25 @@ onMounted(async () => {
   border-bottom: none;
 }
 
-.load-more {
+.load-more-sentinel {
   display: flex;
   justify-content: center;
+  align-items: center;
   padding: var(--spacing-md);
+  min-height: 50px;
+}
+
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.no-more {
+  color: var(--text-tertiary);
+  font-size: 12px;
 }
 
 /* 筛选表单 */
@@ -797,5 +965,12 @@ onMounted(async () => {
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;
+}
+
+/* 退款对话框样式 */
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 </style>

@@ -54,9 +54,9 @@ describe("AccountCardSelector 属性测试", () => {
    * Validates: Requirements 1.2
    */
   describe("Property 1: 账户卡片渲染完整性", () => {
-    it("对于任意账户列表，每个账户卡片应包含名称和图标", () => {
-      fc.assert(
-        fc.property(uniqueAccountsArbitrary, (accounts) => {
+    it("对于任意账户列表，每个账户卡片应包含名称和图标", async () => {
+      await fc.assert(
+        fc.asyncProperty(uniqueAccountsArbitrary, async (accounts) => {
           const wrapper = mount(AccountCardSelector, {
             props: {
               modelValue: null,
@@ -70,6 +70,13 @@ describe("AccountCardSelector 属性测试", () => {
               },
             },
           });
+
+          // 如果有展开按钮，点击展开以显示所有账户
+          const expandBtn = wrapper.find(".expand-btn");
+          if (expandBtn.exists()) {
+            await expandBtn.trigger("click");
+            await wrapper.vm.$nextTick();
+          }
 
           const accountItems = wrapper.findAll(".account-item");
 
@@ -91,7 +98,7 @@ describe("AccountCardSelector 属性测试", () => {
 
           wrapper.unmount();
         }),
-        { numRuns: 50 }
+        { numRuns: 50 },
       );
     });
 
@@ -141,7 +148,7 @@ describe("AccountCardSelector 属性测试", () => {
 
           wrapper.unmount();
         }),
-        { numRuns: 50 }
+        { numRuns: 50 },
       );
     });
 
@@ -177,7 +184,7 @@ describe("AccountCardSelector 属性测试", () => {
 
           wrapper.unmount();
         }),
-        { numRuns: 50 }
+        { numRuns: 50 },
       );
     });
   });

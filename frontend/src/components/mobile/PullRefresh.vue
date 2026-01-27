@@ -91,12 +91,26 @@ const canPull = computed(() => {
 
 // 检查是否滚动到顶部
 const checkReachTop = (): boolean => {
-  // 优先检查容器自身的滚动
+  // 检查所有可能的滚动容器
+  let scrollTop = 0
+  
+  // 1. 检查容器自身的滚动
   if (containerRef.value && containerRef.value.scrollTop > 0) {
     return false
   }
-  // 检查 window/document 的滚动位置
-  const scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0
+  
+  // 2. 检查父元素的滚动（向上查找可滚动的父元素）
+  let parent = containerRef.value?.parentElement
+  while (parent) {
+    const overflow = window.getComputedStyle(parent).overflowY
+    if ((overflow === 'auto' || overflow === 'scroll') && parent.scrollTop > 0) {
+      return false
+    }
+    parent = parent.parentElement
+  }
+  
+  // 3. 检查 window/document 的滚动位置
+  scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0
   return scrollTop <= 0
 }
 

@@ -76,7 +76,7 @@ class TransactionService {
           familyId: data.familyId || null,
           isFamily: data.isFamily || false,
         },
-        { transaction: t }
+        { transaction: t },
       );
 
       // 更新账户余额
@@ -204,8 +204,11 @@ class TransactionService {
     const t = await sequelize.transaction();
 
     try {
+      // 使用悲观锁获取交易记录，防止并发冲突
       const transaction = await Transaction.findOne({
         where: { id, userId },
+        lock: t.LOCK.UPDATE,
+        transaction: t,
       });
 
       if (!transaction) {
@@ -216,13 +219,19 @@ class TransactionService {
       const oldType = transaction.type;
       const oldAccountId = transaction.accountId;
 
+      // 计算新值
+      const newAmount = data.amount ?? oldAmount;
+      const newType = data.type ?? oldType;
+      const newAccountId = data.accountId ?? oldAccountId;
+
       // 如果更换了账户，验证新账户
-      if (data.accountId && data.accountId !== oldAccountId) {
+      if (newAccountId !== oldAccountId) {
         const newAccount = await Account.findOne({
-          where: { id: data.accountId, userId },
+          where: { id: newAccountId, userId },
+          transaction: t,
         });
         if (!newAccount) {
-          throw new AppError("账户不存在", 404, ErrorCode.NOT_FOUND);
+          throw new AppError("新账户不存在", 404, ErrorCode.NOT_FOUND);
         }
       }
 
@@ -233,30 +242,24 @@ class TransactionService {
             id: data.categoryId,
             [Op.or]: [{ userId: null, isSystem: true }, { userId }],
           },
+          transaction: t,
         });
         if (!category) {
           throw new AppError("分类不存在", 404, ErrorCode.NOT_FOUND);
         }
       }
 
-      // 计算余额调整
-      const newAmount = data.amount ?? oldAmount;
-      const newType = data.type ?? oldType;
-      const newAccountId = data.accountId ?? oldAccountId;
-
-      // 恢复旧账户余额（仅非信用账户）
-      const oldAccount = await Account.findByPk(oldAccountId);
-      if (oldAccount && !oldAccount.isCreditAccount()) {
-        const oldBalanceChange = oldType === "income" ? -oldAmount : oldAmount;
-        await oldAccount.updateBalance(oldBalanceChange, t);
-      }
-
-      // 更新新账户余额（仅非信用账户）
-      const newAccount = await Account.findByPk(newAccountId);
-      if (newAccount && !newAccount.isCreditAccount()) {
-        const newBalanceChange = newType === "income" ? newAmount : -newAmount;
-        await newAccount.updateBalance(newBalanceChange, t);
-      }
+      // 调整账户余额
+      await this.adjustAccountBalanceOnUpdate(
+        oldAccountId,
+        newAccountId,
+        oldAmount,
+        newAmount,
+        oldType,
+        newType,
+        userId,
+        t,
+      );
 
       // 更新交易记录
       await transaction.update(
@@ -269,7 +272,7 @@ class TransactionService {
           note: data.note,
           isFamily: data.isFamily,
         },
-        { transaction: t }
+        { transaction: t },
       );
 
       await t.commit();
@@ -278,6 +281,74 @@ class TransactionService {
     } catch (error) {
       await t.rollback();
       throw error;
+    }
+  }
+
+  // 辅助函数：调整账户余额（账户变更时）
+  private async adjustAccountBalanceOnUpdate(
+    oldAccountId: number,
+    newAccountId: number,
+    oldAmount: number,
+    newAmount: number,
+    oldType: TransactionType,
+    newType: TransactionType,
+    userId: number,
+    t: any,
+  ) {
+    // 如果账户未变更且金额和类型都未变更，无需调整余额
+    if (
+      oldAccountId === newAccountId &&
+      oldAmount === newAmount &&
+      oldType === newType
+    ) {
+      return;
+    }
+
+    // 获取原账户（加锁）
+    const oldAccount = await Account.findOne({
+      where: { id: oldAccountId, userId },
+      lock: t.LOCK.UPDATE,
+      transaction: t,
+    });
+
+    if (!oldAccount) {
+      throw new AppError("原账户不存在", 404, ErrorCode.NOT_FOUND);
+    }
+
+    // 如果账户变更，获取新账户（加锁）
+    let newAccount = oldAccount;
+    if (oldAccountId !== newAccountId) {
+      const fetchedNewAccount = await Account.findOne({
+        where: { id: newAccountId, userId },
+        lock: t.LOCK.UPDATE,
+        transaction: t,
+      });
+
+      if (!fetchedNewAccount) {
+        throw new AppError("新账户不存在", 404, ErrorCode.NOT_FOUND);
+      }
+
+      newAccount = fetchedNewAccount;
+    }
+
+    // 恢复原账户余额（仅非信用账户）
+    if (!oldAccount.isCreditAccount()) {
+      // 支出类型：退回金额（增加余额）
+      // 收入/退款类型：撤回金额（减少余额）
+      const oldBalanceChange = oldType === "expense" ? oldAmount : -oldAmount;
+      await oldAccount.updateBalance(oldBalanceChange, t);
+    }
+
+    // 如果账户变更，更新新账户余额（仅非信用账户）
+    if (oldAccountId !== newAccountId && !newAccount.isCreditAccount()) {
+      // 支出类型：扣除金额（减少余额）
+      // 收入/退款类型：增加金额（增加余额）
+      const newBalanceChange = newType === "expense" ? -newAmount : newAmount;
+      await newAccount.updateBalance(newBalanceChange, t);
+    } else if (oldAccountId === newAccountId && !oldAccount.isCreditAccount()) {
+      // 同一账户但金额或类型变更，直接应用新的余额变化
+      const newBalanceChange = newType === "expense" ? -newAmount : newAmount;
+      await oldAccount.updateBalance(newBalanceChange, t);
     }
   }
 
